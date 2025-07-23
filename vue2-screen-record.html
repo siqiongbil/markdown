@@ -530,9 +530,9 @@
                 // 获取视频约束
                 getVideoConstraints() {
                     const constraints = {
-                        1080p: { width: 1920, height: 1080, frameRate: 30 },
-                        720p: { width: 1280, height: 720, frameRate: 30 },
-                        480p: { width: 854, height: 480, frameRate: 24 }
+                        '1080p': { width: 1920, height: 1080, frameRate: 30 },
+                        '720p': { width: 1280, height: 720, frameRate: 30 },
+                        '480p': { width: 854, height: 480, frameRate: 24 }
                     };
                     
                     return constraints[this.settings.videoQuality];
