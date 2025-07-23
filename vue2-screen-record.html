@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue2录屏+音频转字幕系统</title>
+    
+    <!-- Vue2 + Element UI -->
+    <script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .control-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .video-container {
+            width: 100%;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .video-container video {
+            width: 100%;
+            display: block;
+        }
+        
+        .video-placeholder {
+            height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .status-card {
+            margin-bottom: 20px;
+        }
+        
+        .transcript-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+        }
+        
+        .transcript-content {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 300px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+        
+        .settings-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .recording-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #f56c6c;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .el-progress {
+            margin: 15px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .control-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <div class="header">
+                <h1>📹 Vue2录屏+音频转字幕系统</h1>
+                <p>基于Vue2 + Element UI的专业录屏与语音识别解决方案</p>
+            </div>
+            
+            <div class="main-content">
+                <!-- 设置面板 -->
+                <div class="settings-panel">
+                    <h2 class="section-title">⚙️ 录制设置</h2>
+                    <div class="settings-grid">
+                        <el-select v-model="settings.videoQuality" placeholder="选择视频质量">
+                            <el-option label="720p (推荐)" value="720p"></el-option>
+                            <el-option label="1080p (高质量)" value="1080p"></el-option>
+                            <el-option label="480p (流畅)" value="480p"></el-option>
+                        </el-select>
+                        
+                        <el-select v-model="settings.audioSource" placeholder="选择音频来源">
+                            <el-option label="系统音频" value="system"></el-option>
+                            <el-option label="麦克风" value="microphone"></el-option>
+                            <el-option label="系统+麦克风" value="both"></el-option>
+                        </el-select>
+                        
+                        <el-select v-model="settings.language" placeholder="识别语言">
+                            <el-option label="中文 (简体)" value="zh-CN"></el-option>
+                            <el-option label="English (US)" value="en-US"></el-option>
+                            <el-option label="日本語" value="ja-JP"></el-option>
+                            <el-option label="한국어" value="ko-KR"></el-option>
+                        </el-select>
+                        
+                        <el-switch
+                            v-model="settings.continuous"
+                            active-text="连续识别">
+                        </el-switch>
+                    </div>
+                </div>
+                
+                <!-- 控制和预览面板 -->
+                <div class="control-row">
+                    <!-- 控制面板 -->
+                    <div class="panel">
+                        <h2 class="section-title">🎮 控制面板</h2>
+                        
+                        <el-alert
+                            :title="statusMessage"
+                            :type="statusType"
+                            :closable="false"
+                            class="status-card">
+                            <span v-if="isRecording" class="recording-indicator"></span>
+                        </el-alert>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <el-button
+                                type="primary"
+                                icon="el-icon-video-camera"
+                                @click="startRecording"
+                                :disabled="isRecording || !browserSupported">
+                                开始录制
+                            </el-button>
+                            
+                            <el-button
+                                type="danger"
+                                icon="el-icon-video-pause"
+                                @click="stopRecording"
+                                :disabled="!isRecording">
+                                停止录制
+                            </el-button>
+                            
+                            <el-button
+                                type="success"
+                                icon="el-icon-download"
+                                @click="downloadVideo"
+                                :disabled="!recordedVideo">
+                                下载视频
+                            </el-button>
+                            
+                            <el-button
+                                icon="el-icon-delete"
+                                @click="clearTranscript">
+                                清空字幕
+                            </el-button>
+                        </div>
+                        
+                        <el-progress
+                            v-if="isRecording"
+                            :percentage="recordingProgress"
+                            :format="formatProgress">
+                        </el-progress>
+                        
+                        <div v-if="recordingTime" style="color: #666; font-size: 14px;">
+                            录制时间: {{ recordingTime }}
+                        </div>
+                    </div>
+                    
+                    <!-- 视频预览面板 -->
+                    <div class="panel">
+                        <h2 class="section-title">📺 视频预览</h2>
+                        
+                        <div class="video-container">
+                            <video v-if="videoUrl" :src="videoUrl" controls></video>
+                            <div v-else class="video-placeholder">
+                                点击"开始录制"开始录屏
+                            </div>
+                        </div>
+                        
+                        <el-card shadow="never">
+                            <div slot="header">录制信息</div>
+                            <div>{{ recordingInfo }}</div>
+                        </el-card>
+                    </div>
+                </div>
+                
+                <!-- 字幕面板 -->
+                <div class="transcript-panel">
+                    <h2 class="section-title">📝 实时字幕</h2>
+                    
+                    <div class="transcript-content">{{ transcriptText || '等待语音输入...' }}</div>
+                    
+                    <div style="margin-top: 20px;">
+                        <el-button
+                            icon="el-icon-document"
+                            @click="exportTranscript">
+                            导出字幕
+                        </el-button>
+                        
+                        <el-button
+                            icon="el-icon-copy-document"
+                            @click="copyTranscript">
+                            复制文本
+                        </el-button>
+                        
+                        <el-button
+                            icon="el-icon-folder"
+                            @click="saveTranscript">
+                            保存字幕
+                        </el-button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    // 录制相关
+                    mediaRecorder: null,
+                    recordedChunks: [],
+                    stream: null,
+                    recognition: null,
+                    isRecording: false,
+                    startTime: null,
+                    videoUrl: '',
+                    recordedVideo: false,
+                    
+                    // 字幕相关
+                    transcriptText: '',
+                    
+                    // 状态相关
+                    statusMessage: '系统就绪',
+                    statusType: 'success',
+                    recordingInfo: '等待开始录制...',
+                    recordingTime: '',
+                    recordingProgress: 0,
+                    browserSupported: true,
+                    
+                    // 设置
+                    settings: {
+                        videoQuality: '720p',
+                        audioSource: 'system',
+                        language: 'zh-CN',
+                        continuous: true
+                    },
+                    
+                    // 定时器
+                    timer: null
+                }
+            },
+            
+            mounted() {
+                this.checkBrowserSupport();
+                this.loadSavedTranscript();
+            },
+            
+            beforeDestroy() {
+                if (this.timer) {
+                    clearInterval(this.timer);
+                }
+                if (this.isRecording) {
+                    this.stopRecording();
+                }
+            },
+            
+            methods: {
+                // 检查浏览器支持
+                checkBrowserSupport() {
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                        this.browserSupported = false;
+                        this.statusMessage = '浏览器不支持屏幕录制功能';
+                        this.statusType = 'error';
+                        this.$message.error('浏览器不支持屏幕录制功能');
+                    }
+                },
+                
+                // 初始化语音识别
+                initSpeechRecognition() {
+                    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                        this.recognition = new SpeechRecognition();
+                        
+                        this.recognition.lang = this.settings.language;
+                        this.recognition.continuous = this.settings.continuous;
+                        this.recognition.interimResults = true;
+                        this.recognition.maxAlternatives = 1;
+
+                        this.recognition.onstart = () => {
+                            console.log('🎤 语音识别已开始');
+                        };
+
+                        this.recognition.onresult = (event) => {
+                            let finalTranscript = '';
+
+                            for (let i = event.resultIndex; i < event.results.length; i++) {
+                                const transcript = event.results[i][0].transcript;
+                                if (event.results[i].isFinal) {
+                                    finalTranscript += transcript;
+                                }
+                            }
+
+                            if (finalTranscript) {
+                                const timestamp = this.getTimestamp();
+                                const line = `[${timestamp}] ${finalTranscript}\n`;
+                                this.transcriptText += line;
+                            }
+                        };
+
+                        this.recognition.onerror = (event) => {
+                            console.error('语音识别错误:', event.error);
+                            this.$message.error('语音识别错误: ' + event.error);
+                        };
+
+                        this.recognition.onend = () => {
+                            if (this.isRecording) {
+                                setTimeout(() => {
+                                    if (this.isRecording) {
+                                        this.recognition.start();
+                                    }
+                                }, 100);
+                            }
+                        };
+
+                        return true;
+                    } else {
+                        this.$message.error('浏览器不支持语音识别功能');
+                        return false;
+                    }
+                },
+                
+                // 开始录制
+                async startRecording() {
+                    try {
+                        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+                            video: this.getVideoConstraints(),
+                            audio: true
+                        });
+
+                        let audioStream = null;
+                        if (this.settings.audioSource === 'microphone' || this.settings.audioSource === 'both') {
+                            try {
+                                audioStream = await navigator.mediaDevices.getUserMedia({
+                                    audio: true
+                                });
+                            } catch (err) {
+                                console.warn('无法获取麦克风权限:', err);
+                                this.$message.warning('无法获取麦克风权限');
+                            }
+                        }
+
+                        this.stream = displayStream;
+
+                        this.recordedChunks = [];
+                        this.mediaRecorder = new MediaRecorder(this.stream, {
+                            mimeType: 'video/webm;codecs=vp9'
+                        });
+
+                        this.mediaRecorder.ondataavailable = (event) => {
+                            if (event.data.size > 0) {
+                                this.recordedChunks.push(event.data);
+                            }
+                        };
+
+                        this.mediaRecorder.onstop = () => {
+                            const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+                            this.videoUrl = URL.createObjectURL(blob);
+                            this.recordedVideo = true;
+                            
+                            this.statusMessage = '录制完成，可以下载视频';
+                            this.statusType = 'success';
+                            this.$message.success('录制完成');
+                        };
+
+                        this.mediaRecorder.start(1000);
+                        this.isRecording = true;
+                        this.startTime = Date.now();
+
+                        if (this.initSpeechRecognition()) {
+                            this.recognition.start();
+                        }
+
+                        this.statusMessage = '正在录制中...';
+                        this.statusType = 'warning';
+                        this.recordingInfo = '录制进行中...';
+                        this.startTimer();
+
+                        this.stream.getVideoTracks()[0].onended = () => {
+                            this.stopRecording();
+                        };
+
+                        this.$message.success('录制开始');
+
+                    } catch (err) {
+                        console.error('开始录制失败:', err);
+                        this.$message.error('开始录制失败: ' + err.message);
+                        this.statusMessage = '录制失败: ' + err.message;
+                        this.statusType = 'error';
+                    }
+                },
+                
+                // 停止录制
+                stopRecording() {
+                    if (this.mediaRecorder && this.isRecording) {
+                        this.mediaRecorder.stop();
+                        this.isRecording = false;
+
+                        if (this.recognition) {
+                            this.recognition.stop();
+                        }
+
+                        if (this.stream) {
+                            this.stream.getTracks().forEach(track => track.stop());
+                        }
+
+                        if (this.timer) {
+                            clearInterval(this.timer);
+                        }
+
+                        this.statusMessage = '录制已停止';
+                        this.statusType = 'info';
+                        this.recordingInfo = '录制已完成';
+                        this.recordingProgress = 0;
+                        
+                        this.$message.info('录制已停止');
+                    }
+                },
+                
+                // 下载视频
+                downloadVideo() {
+                    if (this.recordedChunks.length > 0) {
+                        const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `vue2-screen-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        
+                        this.$message.success('视频下载开始');
+                    }
+                },
+                
+                // 获取视频约束
+                getVideoConstraints() {
+                    const constraints = {
+                        1080p: { width: 1920, height: 1080, frameRate: 30 },
+                        720p: { width: 1280, height: 720, frameRate: 30 },
+                        480p: { width: 854, height: 480, frameRate: 24 }
+                    };
+                    
+                    return constraints[this.settings.videoQuality];
+                },
+                
+                // 获取时间戳
+                getTimestamp() {
+                    if (!this.startTime) return '00:00:00';
+                    
+                    const elapsed = Date.now() - this.startTime;
+                    const hours = Math.floor(elapsed / 3600000);
+                    const minutes = Math.floor((elapsed % 3600000) / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    
+                    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                },
+                
+                // 开始计时器
+                startTimer() {
+                    this.timer = setInterval(() => {
+                        if (!this.isRecording) {
+                            clearInterval(this.timer);
+                            return;
+                        }
+                        
+                        const elapsed = Date.now() - this.startTime;
+                        const minutes = Math.floor(elapsed / 60000);
+                        const seconds = Math.floor((elapsed % 60000) / 1000);
+                        
+                        this.recordingTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                        
+                        const maxTime = 30 * 60 * 1000;
+                        this.recordingProgress = Math.min((elapsed / maxTime) * 100, 100);
+                    }, 1000);
+                },
+                
+                // 格式化进度
+                formatProgress(percentage) {
+                    return percentage === 100 ? '录制即将结束' : `${percentage.toFixed(1)}%`;
+                },
+                
+                // 清空字幕
+                clearTranscript() {
+                    this.transcriptText = '';
+                    this.$message.success('字幕已清空');
+                },
+                
+                // 导出字幕
+                exportTranscript() {
+                    if (!this.transcriptText) {
+                        this.$message.warning('没有字幕内容可导出');
+                        return;
+                    }
+                    
+                    const blob = new Blob([this.transcriptText], { type: 'text/plain;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `vue2-transcript-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    
+                    this.$message.success('字幕导出成功');
+                },
+                
+                // 复制字幕
+                copyTranscript() {
+                    if (!this.transcriptText) {
+                        this.$message.warning('没有字幕内容可复制');
+                        return;
+                    }
+                    
+                    navigator.clipboard.writeText(this.transcriptText).then(() => {
+                        this.$message.success('字幕已复制到剪贴板');
+                    }).catch(err => {
+                        console.error('复制失败:', err);
+                        this.$message.error('复制失败');
+                    });
+                },
+                
+                // 保存字幕
+                saveTranscript() {
+                    if (!this.transcriptText) {
+                        this.$message.warning('没有字幕内容可保存');
+                        return;
+                    }
+                    
+                    localStorage.setItem('vue2SavedTranscript', this.transcriptText);
+                    localStorage.setItem('vue2SavedTranscriptTime', new Date().toISOString());
+                    this.$message.success('字幕已保存到本地存储');
+                },
+                
+                // 加载保存的字幕
+                loadSavedTranscript() {
+                    const savedTranscript = localStorage.getItem('vue2SavedTranscript');
+                    if (savedTranscript) {
+                        const savedTime = localStorage.getItem('vue2SavedTranscriptTime');
+                        this.$confirm(`发现保存的字幕内容 (${new Date(savedTime).toLocaleString()})，是否恢复？`, '提示', {
+                            confirmButtonText: '恢复',
+                            cancelButtonText: '取消',
+                            type: 'info'
+                        }).then(() => {
+                            this.transcriptText = savedTranscript;
+                            this.$message.success('字幕内容已恢复');
+                        }).catch(() => {
+                            // 用户取消
+                        });
+                    }
+                }
+            },
+            
+            watch: {
+                'settings.language'(newVal) {
+                    if (this.recognition) {
+                        this.recognition.lang = newVal;
+                    }
+                },
+                
+                'settings.continuous'(newVal) {
+                    if (this.recognition) {
+                        this.recognition.continuous = newVal;
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
