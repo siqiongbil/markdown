@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS Flexbox 可视化演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.7;
+            color: #222;
+            background: #f4f6fa;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 36px 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a237e;
+            margin-bottom: 32px;
+            font-size: 2.6em;
+            letter-spacing: 2px;
+        }
+
+        h2 {
+            color: #283593;
+            margin: 36px 0 18px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #90caf9;
+            font-size: 1.5em;
+        }
+
+        h3 {
+            color: #1976d2;
+            margin: 22px 0 12px 0;
+            font-size: 1.15em;
+        }
+
+        .demo-section {
+            margin: 36px 0;
+            padding: 24px 18px;
+            border-radius: 12px;
+            background: #f8fafc;
+            box-shadow: 0 2px 8px rgba(33,150,243,0.06);
+            border: 1px solid #e3eaf2;
+        }
+
+        .demo-container {
+            background: #e3f2fd;
+            padding: 18px 10px;
+            margin: 14px 0;
+            border-radius: 10px;
+            min-height: 80px;
+            border: 1.5px dashed #90caf9;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .demo-item {
+            background: #1976d2;
+            color: #fff;
+            padding: 18px 0;
+            margin: 0 8px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            min-width: 110px;
+            min-height: 48px;
+            box-shadow: 0 2px 8px rgba(25,118,210,0.08);
+            font-size: 1.08em;
+            flex: 1 1 110px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .demo-item:nth-child(2) { background: #42a5f5; }
+        .demo-item:nth-child(3) { background: #64b5f6; }
+        .demo-item:nth-child(4) { background: #90caf9; color: #222; }
+        .demo-item:nth-child(5) { background: #b3e5fc; color: #222; }
+        .demo-item:nth-child(6) { background: #e1f5fe; color: #222; }
+
+        .tall-item { height: 60px; line-height: 30px; }
+        .small-item { height: 30px; line-height: 30px; font-size: 13px; }
+        .large-item { height: 80px; line-height: 40px; font-size: 18px; }
+
+        .code-block {
+            background: #263238;
+            color: #e3f2fd;
+            padding: 16px 18px;
+            border-radius: 7px;
+            margin: 12px 0;
+            font-family: 'Fira Mono', 'Consolas', 'Courier New', monospace;
+            font-size: 1.08em;
+            overflow-x: auto;
+            box-shadow: 0 1px 4px rgba(33,150,243,0.07);
+        }
+
+        .description {
+            background: #e3f2fd;
+            padding: 12px 16px;
+            border-left: 4px solid #1976d2;
+            margin: 12px 0;
+            border-radius: 0 7px 7px 0;
+            font-size: 1em;
+        }
+
+        .flex-row { display: flex; }
+        .flex-row-reverse { display: flex; flex-direction: row-reverse; }
+        .flex-column { display: flex; flex-direction: column; }
+        .flex-column-reverse { display: flex; flex-direction: column-reverse; }
+
+        .justify-start { justify-content: flex-start; }
+        .justify-end { justify-content: flex-end; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .justify-around { justify-content: space-around; }
+        .justify-evenly { justify-content: space-evenly; }
+
+        .align-stretch { align-items: stretch; }
+        .align-start { align-items: flex-start; }
+        .align-end { align-items: flex-end; }
+        .align-center { align-items: center; }
+        .align-baseline { align-items: baseline; }
+
+        .flex-wrap { flex-wrap: wrap; }
+        .flex-nowrap { flex-wrap: nowrap; }
+        .flex-wrap-reverse { flex-wrap: wrap-reverse; }
+
+        .flex-grow-1 { flex-grow: 1; }
+        .flex-grow-2 { flex-grow: 2; }
+        .flex-shrink-0 { flex-shrink: 0; }
+
+        .order-1 { order: 1; }
+        .order-2 { order: 2; }
+        .order-3 { order: 3; }
+        .order-4 { order: 4; }
+        .order-5 { order: 5; }
+        .order-6 { order: 6; }
+
+        .align-self-start { align-self: flex-start; }
+        .align-self-end { align-self: flex-end; }
+        .align-self-center { align-self: center; }
+
+        .layout-example {
+            margin: 20px 0;
+            padding: 20px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #34495e;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 3px;
+            transition: background 0.3s;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .card-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .card {
+            flex: 1 1 200px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
+        }
+
+        .sidebar-layout {
+            display: flex;
+            min-height: 200px;
+        }
+
+        .sidebar {
+            flex: 0 0 200px;
+            background: #34495e;
+            color: white;
+            padding: 20px;
+            border-radius: 5px 0 0 5px;
+        }
+
+        .main-content {
+            flex: 1;
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 0 5px 5px 0;
+        }
+
+        .responsive-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .responsive-item {
+            flex: 1 1 100%;
+            background: #3498db;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        @media (min-width: 768px) {
+            .responsive-item {
+                flex: 1 1 45%;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .responsive-item {
+                flex: 1 1 30%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 CSS Flexbox 可视化演示</h1>
+
+        <!-- Flex Direction -->
+        <div class="demo-section">
+            <h2>📐 flex-direction 属性</h2>
+            <p class="description">控制Flex项目的主轴方向</p>
+
+            <h3>row（默认）</h3>
+            <div class="code-block">display: flex; flex-direction: row;</div>
+            <div class="demo-container flex-row">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item">Item2</div>
+                <div class="demo-item">Item3</div>
+                <div class="demo-item">Item4</div>
+            </div>
+
+            <h3>row-reverse</h3>
+            <div class="code-block">display: flex; flex-direction: row-reverse;</div>
+            <div class="demo-container flex-row-reverse">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item">Item2</div>
+                <div class="demo-item">Item3</div>
+                <div class="demo-item">Item4</div>
+            </div>
+
+            <h3>column</h3>
+            <div class="code-block">display: flex; flex-direction: column;</div>
+            <div class="demo-container flex-column" style="height: 200px;">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item">Item2</div>
+                <div class="demo-item">Item3</div>
+                <div class="demo-item">Item4</div>
+            </div>
+
+            <h3>column-reverse</h3>
+            <div class="code-block">display: flex; flex-direction: column-reverse;</div>
+            <div class="demo-container flex-column-reverse" style="height: 200px;">
+                <div class="demo-item">Item4</div>
+                <div class="demo-item">Item3</div>
+                <div class="demo-item">Item2</div>
+                <div class="demo-item">Item1</div>
+            </div>
+        </div>
+
+        <!-- Justify Content -->
+        <div class="demo-section">
+            <h2>↔️ justify-content 属性</h2>
+            <p class="description">控制Flex项目在主轴上的对齐方式</p>
+
+            <h3>flex-start（默认）</h3>
+            <div class="code-block">justify-content: flex-start;</div>
+            <div class="demo-container flex-row justify-start">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item">Item2</div>
+                <div class="demo-item">Item3</div>
+            </div>
+
+            <h3>flex-end</h3>
+            <div class="code-block">justify-content: flex-end;</div>
+            <div class="demo-container flex-row justify-end">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item">Item2</div>
+                <div class="demo-item">Item3</div>
+            </div>
+
+            <h3>center</h3>
+            <div class="code-block">justify-content: center;</div>
+            <div class="demo-container flex-row justify-center">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item">Item2</div>
+                <div class="demo-item">Item3</div>
+            </div>
+
+            <h3>space-between</h3>
+            <div class="code-block">justify-content: space-between;</div>
+            <div class="demo-container flex-row justify-between">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item">Item2</div>
+                <div class="demo-item">Item3</div>
+            </div>
+
+            <h3>space-around</h3>
+            <div class="code-block">justify-content: space-around;</div>
+            <div class="demo-container flex-row justify-around">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item">Item2</div>
+                <div class="demo-item">Item3</div>
+            </div>
+
+            <h3>space-evenly</h3>
+            <div class="code-block">justify-content: space-evenly;</div>
+            <div class="demo-container flex-row justify-evenly">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item">Item2</div>
+                <div class="demo-item">Item3</div>
+            </div>
+        </div>
+
+        <!-- Align Items -->
+        <div class="demo-section">
+            <h2>↕️ align-items 属性</h2>
+            <p class="description">控制Flex项目在交叉轴上的对齐方式</p>
+
+            <h3>stretch（默认）</h3>
+            <div class="code-block">align-items: stretch;</div>
+            <div class="demo-container flex-row align-stretch" style="height: 100px;">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item tall-item">Item2<br>更高</div>
+                <div class="demo-item">Item3</div>
+            </div>
+
+            <h3>flex-start</h3>
+            <div class="code-block">align-items: flex-start;</div>
+            <div class="demo-container flex-row align-start" style="height: 100px;">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item tall-item">Item2<br>更高</div>
+                <div class="demo-item">Item3</div>
+            </div>
+
+            <h3>flex-end</h3>
+            <div class="code-block">align-items: flex-end;</div>
+            <div class="demo-container flex-row align-end" style="height: 100px;">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item tall-item">Item2<br>更高</div>
+                <div class="demo-item">Item3</div>
+            </div>
+
+            <h3>center</h3>
+            <div class="code-block">align-items: center;</div>
+            <div class="demo-container flex-row align-center" style="height: 100px;">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item tall-item">Item2<br>更高</div>
+                <div class="demo-item">Item3</div>
+            </div>
+
+            <h3>baseline</h3>
+            <div class="code-block">align-items: baseline;</div>
+            <div class="demo-container flex-row align-baseline" style="height: 100px;">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item large-item">Item2</div>
+                <div class="demo-item small-item">Item3</div>
+            </div>
+        </div>
+
+        <!-- Flex Wrap -->
+        <div class="demo-section">
+            <h2>🔄 flex-wrap 属性</h2>
+            <p class="description">控制Flex项目是否换行</p>
+
+            <h3>nowrap（默认）</h3>
+            <div class="code-block">flex-wrap: nowrap;</div>
+            <div class="demo-container flex-row flex-nowrap">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item">Item2</div>
+                <div class="demo-item">Item3</div>
+                <div class="demo-item">Item4</div>
+                <div class="demo-item">Item5</div>
+                <div class="demo-item">Item6</div>
+            </div>
+
+            <h3>wrap</h3>
+            <div class="code-block">flex-wrap: wrap;</div>
+            <div class="demo-container flex-row flex-wrap">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item">Item2</div>
+                <div class="demo-item">Item3</div>
+                <div class="demo-item">Item4</div>
+                <div class="demo-item">Item5</div>
+                <div class="demo-item">Item6</div>
+            </div>
+
+            <h3>wrap-reverse</h3>
+            <div class="code-block">flex-wrap: wrap-reverse;</div>
+            <div class="demo-container flex-row flex-wrap-reverse">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item">Item2</div>
+                <div class="demo-item">Item3</div>
+                <div class="demo-item">Item4</div>
+                <div class="demo-item">Item5</div>
+                <div class="demo-item">Item6</div>
+            </div>
+        </div>
+
+        <!-- Flex Grow -->
+        <div class="demo-section">
+            <h2>📈 flex-grow 属性</h2>
+            <p class="description">控制Flex项目的放大比例</p>
+
+            <h3>flex-grow: 0（默认）</h3>
+            <div class="code-block">flex-grow: 0;</div>
+            <div class="demo-container flex-row">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item">Item2</div>
+                <div class="demo-item">Item3</div>
+            </div>
+
+            <h3>flex-grow: 1</h3>
+            <div class="code-block">flex-grow: 1;</div>
+            <div class="demo-container flex-row">
+                <div class="demo-item flex-grow-1">Item1</div>
+                <div class="demo-item flex-grow-1">Item2</div>
+                <div class="demo-item flex-grow-1">Item3</div>
+            </div>
+
+            <h3>flex-grow: 2</h3>
+            <div class="code-block">flex-grow: 2;</div>
+            <div class="demo-container flex-row">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item flex-grow-2">Item2</div>
+                <div class="demo-item">Item3</div>
+            </div>
+        </div>
+
+        <!-- Order -->
+        <div class="demo-section">
+            <h2>🔢 order 属性</h2>
+            <p class="description">控制Flex项目的排列顺序</p>
+
+            <h3>默认顺序</h3>
+            <div class="code-block">order: 0;</div>
+            <div class="demo-container flex-row">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item">Item2</div>
+                <div class="demo-item">Item3</div>
+                <div class="demo-item">Item4</div>
+            </div>
+
+            <h3>自定义顺序</h3>
+            <div class="code-block">order: 1, 2, 3, 4;</div>
+            <div class="demo-container flex-row">
+                <div class="demo-item order-1">Item1</div>
+                <div class="demo-item order-2">Item2</div>
+                <div class="demo-item order-3">Item3</div>
+                <div class="demo-item order-4">Item4</div>
+            </div>
+
+            <h3>反向顺序</h3>
+            <div class="code-block">order: 4, 3, 2, 1;</div>
+            <div class="demo-container flex-row">
+                <div class="demo-item order-4">Item1</div>
+                <div class="demo-item order-3">Item2</div>
+                <div class="demo-item order-2">Item3</div>
+                <div class="demo-item order-1">Item4</div>
+            </div>
+        </div>
+
+        <!-- Align Self -->
+        <div class="demo-section">
+            <h2>🎯 align-self 属性</h2>
+            <p class="description">控制单个Flex项目的对齐方式</p>
+
+            <h3>align-self: flex-start</h3>
+            <div class="code-block">align-self: flex-start;</div>
+            <div class="demo-container flex-row align-center" style="height: 100px;">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item tall-item align-self-start">Item2</div>
+                <div class="demo-item">Item3</div>
+            </div>
+
+            <h3>align-self: flex-end</h3>
+            <div class="code-block">align-self: flex-end;</div>
+            <div class="demo-container flex-row align-center" style="height: 100px;">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item tall-item align-self-end">Item2</div>
+                <div class="demo-item">Item3</div>
+            </div>
+
+            <h3>align-self: center</h3>
+            <div class="code-block">align-self: center;</div>
+            <div class="demo-container flex-row align-start" style="height: 100px;">
+                <div class="demo-item">Item1</div>
+                <div class="demo-item tall-item align-self-center">Item2</div>
+                <div class="demo-item">Item3</div>
+            </div>
+        </div>
+
+        <!-- 实际布局示例 -->
+        <div class="demo-section">
+            <h2>🏗️ 实际布局示例</h2>
+            <p class="description">Flexbox在实际项目中的应用</p>
+
+            <h3>导航栏布局</h3>
+            <div class="code-block">display: flex; justify-content: space-between; align-items: center;</div>
+            <div class="navbar">
+                <div class="logo">Logo</div>
+                <div class="nav-links">
+                    <a href="#">首页</a>
+                    <a href="#">产品</a>
+                    <a href="#">关于</a>
+                    <a href="#">联系</a>
+                </div>
+            </div>
+
+            <h3>卡片网格布局</h3>
+            <div class="code-block">display: flex; flex-wrap: wrap; gap: 15px;</div>
+            <div class="card-grid">
+                <div class="card">
+                    <h4>卡片1</h4>
+                    <p>这是第一个卡片的内容</p>
+                </div>
+                <div class="card">
+                    <h4>卡片2</h4>
+                    <p>这是第二个卡片的内容</p>
+                </div>
+                <div class="card">
+                    <h4>卡片3</h4>
+                    <p>这是第三个卡片的内容</p>
+                </div>
+            </div>
+
+            <h3>侧边栏布局</h3>
+            <div class="code-block">display: flex; sidebar: flex: 0 0 200px; main: flex: 1;</div>
+            <div class="sidebar-layout">
+                <div class="sidebar">
+                    <h4>侧边栏</h4>
+                    <ul>
+                        <li>菜单项1</li>
+                        <li>菜单项2</li>
+                        <li>菜单项3</li>
+                    </ul>
+                </div>
+                <div class="main-content">
+                    <h4>主内容区域</h4>
+                    <p>这是主要内容区域，会自动占据剩余空间。</p>
+                </div>
+            </div>
+
+            <h3>响应式布局</h3>
+            <div class="code-block">flex: 1 1 100%; @media (min-width: 768px) { flex: 1 1 45%; } @media (min-width: 1024px) { flex: 1 1 30%; }</div>
+            <div class="responsive-grid">
+                <div class="responsive-item">响应式项目1</div>
+                <div class="responsive-item">响应式项目2</div>
+                <div class="responsive-item">响应式项目3</div>
+                <div class="responsive-item">响应式项目4</div>
+                <div class="responsive-item">响应式项目5</div>
+                <div class="responsive-item">响应式项目6</div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>📚 总结</h2>
+            <p class="description">
+                Flexbox是现代CSS布局的强大工具，通过合理使用这些属性，可以轻松创建响应式、自适应的页面布局。
+                记住主轴和交叉轴的概念，以及各种属性对布局的影响。
+            </p>
+        </div>
+    </div>
+</body>
+</html> 

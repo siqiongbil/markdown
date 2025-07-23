@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue3 学习笔记 Demo</title>
+    <!-- Vue3 CDN - 使用稳定版本 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js" onerror="loadBackupVue()"></script>
+    <script>
+        // 备用CDN加载函数
+        function loadBackupVue() {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js';
+            script.onerror = function() {
+                // 如果两个CDN都失败，显示错误信息
+                alert('无法加载Vue.js，请检查网络连接或尝试其他方式运行');
+            };
+            document.head.appendChild(script);
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .demo-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .demo-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .demo-title {
+            color: #4f46e5;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 8px;
+        }
+
+        .demo-content {
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .result {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #4f46e5;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .counter {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .counter-display {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4f46e5;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            background: #f9fafb;
+        }
+
+        .todo-item.completed {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+
+        .book-list {
+            list-style: none;
+        }
+
+        .book-list li {
+            background: #f0f9ff;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 3px solid #0ea5e9;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online { background-color: #10b981; }
+        .status-offline { background-color: #ef4444; }
+        .status-away { background-color: #f59e0b; }
+
+        @media (max-width: 768px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .counter {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <!-- 页面头部 -->
+            <div class="header">
+                <h1>🎯 Vue3 学习笔记 Demo</h1>
+                <p>实践 Vue3 的核心特性和组合式API</p>
+            </div>
+
+            <!-- Demo 网格布局 -->
+            <div class="demo-grid">
+                <!-- 1. 响应式系统 - ref & reactive -->
+                <div class="demo-card">
+                    <h3 class="demo-title">📊 响应式系统</h3>
+                    <div class="demo-content">
+                        <div class="input-group">
+                            <label>消息 (ref):</label>
+                            <input v-model="message" placeholder="输入消息...">
+                        </div>
+                        <div class="result">
+                            <strong>当前消息:</strong> {{ message }}
+                        </div>
+                        
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label>用户名 (reactive):</label>
+                            <input v-model="user.name" placeholder="输入用户名...">
+                        </div>
+                        <div class="input-group">
+                            <label>年龄:</label>
+                            <input v-model.number="user.age" type="number" placeholder="输入年龄...">
+                        </div>
+                        <div class="result">
+                            <strong>用户信息:</strong> {{ user.name }}, {{ user.age }}岁
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 计数器 - 事件处理 -->
+                <div class="demo-card">
+                    <h3 class="demo-title">🔢 计数器 & 事件处理</h3>
+                    <div class="demo-content">
+                        <div class="counter">
+                            <button class="btn" @click="decrement">-</button>
+                            <div class="counter-display">{{ count }}</div>
+                            <button class="btn" @click="increment">+</button>
+                        </div>
+                        <div style="text-align: center;">
+                            <button class="btn" @click="reset">重置</button>
+                            <button class="btn" @click="addTen">+10</button>
+                        </div>
+                        <div class="result">
+                            <strong>操作历史:</strong> {{ operationHistory.join(' → ') }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 计算属性 -->
+                <div class="demo-card">
+                    <h3 class="demo-title">⚡ 计算属性</h3>
+                    <div class="demo-content">
+                        <div class="input-group">
+                            <label>名字:</label>
+                            <input v-model="firstName" placeholder="输入名字...">
+                        </div>
+                        <div class="input-group">
+                            <label>姓氏:</label>
+                            <input v-model="lastName" placeholder="输入姓氏...">
+                        </div>
+                        <div class="result">
+                            <strong>全名:</strong> {{ fullName }}
+                        </div>
+                        <div class="result">
+                            <strong>全名长度:</strong> {{ fullNameLength }} 个字符
+                        </div>
+                        <div class="result">
+                            <strong>反转全名:</strong> {{ reversedFullName }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. 列表渲染 & v-for -->
+                <div class="demo-card">
+                    <h3 class="demo-title">📋 Todo 列表</h3>
+                    <div class="demo-content">
+                        <div class="input-group">
+                            <input v-model="newTodo" @keyup.enter="addTodo" placeholder="按回车添加待办事项...">
+                        </div>
+                        <button class="btn" @click="addTodo">添加</button>
+                        <button class="btn" @click="clearCompleted">清除已完成</button>
+                        
+                        <div style="margin-top: 15px;">
+                            <div v-for="(todo, index) in todos" :key="todo.id" class="todo-item" :class="{ completed: todo.completed }">
+                                <input type="checkbox" v-model="todo.completed">
+                                <span style="flex: 1;">{{ todo.text }}</span>
+                                <button class="btn" style="padding: 5px 10px; font-size: 12px;" @click="removeTodo(index)">删除</button>
+                            </div>
+                        </div>
+                        
+                        <div class="result">
+                            <strong>统计:</strong> 总共 {{ todos.length }} 项，已完成 {{ completedCount }} 项，待办 {{ remainingCount }} 项
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. 表单绑定 & v-model -->
+                <div class="demo-card">
+                    <h3 class="demo-title">📝 表单绑定</h3>
+                    <div class="demo-content">
+                        <div class="input-group">
+                            <label>单选框:</label>
+                            <div>
+                                <label><input type="radio" v-model="selectedOption" value="选项A"> 选项A</label>
+                                <label style="margin-left: 15px;"><input type="radio" v-model="selectedOption" value="选项B"> 选项B</label>
+                                <label style="margin-left: 15px;"><input type="radio" v-model="selectedOption" value="选项C"> 选项C</label>
+                            </div>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>复选框:</label>
+                            <div>
+                                <label><input type="checkbox" v-model="hobbies" value="读书"> 读书</label>
+                                <label style="margin-left: 15px;"><input type="checkbox" v-model="hobbies" value="音乐"> 音乐</label>
+                                <label style="margin-left: 15px;"><input type="checkbox" v-model="hobbies" value="运动"> 运动</label>
+                                <label style="margin-left: 15px;"><input type="checkbox" v-model="hobbies" value="旅行"> 旅行</label>
+                            </div>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>下拉选择:</label>
+                            <select v-model="selectedCity">
+                                <option value="">请选择城市</option>
+                                <option value="北京">北京</option>
+                                <option value="上海">上海</option>
+                                <option value="广州">广州</option>
+                                <option value="深圳">深圳</option>
+                            </select>
+                        </div>
+                        
+                        <div class="result">
+                            <strong>表单数据:</strong><br>
+                            选项: {{ selectedOption }}<br>
+                            爱好: {{ hobbies.join(', ') }}<br>
+                            城市: {{ selectedCity }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. 侦听器 -->
+                <div class="demo-card">
+                    <h3 class="demo-title">👀 侦听器</h3>
+                    <div class="demo-content">
+                        <div class="input-group">
+                            <label>搜索问题 (包含'?'会触发搜索):</label>
+                            <input v-model="question" placeholder="输入包含问号的问题...">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>用户状态:</label>
+                            <select v-model="userStatus">
+                                <option value="online">在线</option>
+                                <option value="offline">离线</option>
+                                <option value="away">离开</option>
+                            </select>
+                        </div>
+                        
+                        <div class="result">
+                            <strong>搜索结果:</strong> {{ answer }}
+                        </div>
+                        
+                        <div class="result">
+                            <strong>状态历史:</strong>
+                            <div v-for="log in statusLogs" :key="log.id" style="margin: 5px 0;">
+                                <span class="status-indicator" :class="`status-${log.status}`"></span>
+                                {{ log.message }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. 条件渲染 -->
+                <div class="demo-card">
+                    <h3 class="demo-title">🎭 条件渲染</h3>
+                    <div class="demo-content">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <button class="btn" @click="toggleVisibility">{{ isVisible ? '隐藏' : '显示' }}内容</button>
+                            <button class="btn" @click="switchView">切换视图</button>
+                        </div>
+                        
+                        <div v-if="isVisible" class="result">
+                            <div v-if="currentView === 'profile'">
+                                <h4>👤 用户资料</h4>
+                                <p>这是用户资料页面</p>
+                            </div>
+                            <div v-else-if="currentView === 'settings'">
+                                <h4>⚙️ 设置页面</h4>
+                                <p>这是设置页面</p>
+                            </div>
+                            <div v-else>
+                                <h4>🏠 首页</h4>
+                                <p>欢迎来到首页</p>
+                            </div>
+                        </div>
+                        
+                        <div v-else class="result">
+                            <p style="color: #6b7280;">内容已隐藏 🙈</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 8. 图书管理示例 -->
+                <div class="demo-card">
+                    <h3 class="demo-title">📚 图书管理</h3>
+                    <div class="demo-content">
+                        <div class="input-group">
+                            <label>添加图书:</label>
+                            <input v-model="newBook" @keyup.enter="addBook" placeholder="输入书名...">
+                        </div>
+                        <button class="btn" @click="addBook">添加图书</button>
+                        
+                        <div style="margin-top: 15px;">
+                            <strong>图书列表 ({{ books.length }} 本):</strong>
+                            <ul class="book-list">
+                                <li v-for="(book, index) in books" :key="index">
+                                    {{ book }}
+                                    <button class="btn" style="float: right; padding: 2px 8px; font-size: 12px;" @click="removeBook(index)">删除</button>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="result">
+                            <strong>图书统计:</strong> {{ booksMessage }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 确保Vue加载完成后再初始化应用
+        function initApp() {
+            if (typeof Vue === 'undefined') {
+                console.error('Vue.js 未能正确加载，请检查网络连接');
+                document.getElementById('app').innerHTML = '<div style="text-align: center; padding: 50px; color: red;"><h2>❌ Vue.js 加载失败</h2><p>请检查网络连接并刷新页面重试</p></div>';
+                return;
+            }
+
+            const { createApp, ref, reactive, computed, watch, watchEffect } = Vue;
+
+            createApp({
+            setup() {
+                // 响应式数据
+                const message = ref('Hello Vue3!');
+                const user = reactive({
+                    name: 'Vue开发者',
+                    age: 25
+                });
+
+                // 计数器
+                const count = ref(0);
+                const operationHistory = ref(['0']);
+
+                const increment = () => {
+                    count.value++;
+                    operationHistory.value.push(`+1=${count.value}`);
+                    if (operationHistory.value.length > 5) {
+                        operationHistory.value.shift();
+                    }
+                };
+
+                const decrement = () => {
+                    count.value--;
+                    operationHistory.value.push(`-1=${count.value}`);
+                    if (operationHistory.value.length > 5) {
+                        operationHistory.value.shift();
+                    }
+                };
+
+                const reset = () => {
+                    count.value = 0;
+                    operationHistory.value = ['重置=0'];
+                };
+
+                const addTen = () => {
+                    count.value += 10;
+                    operationHistory.value.push(`+10=${count.value}`);
+                    if (operationHistory.value.length > 5) {
+                        operationHistory.value.shift();
+                    }
+                };
+
+                // 计算属性
+                const firstName = ref('张');
+                const lastName = ref('三');
+
+                const fullName = computed(() => {
+                    return firstName.value + lastName.value;
+                });
+
+                const fullNameLength = computed(() => {
+                    return fullName.value.length;
+                });
+
+                const reversedFullName = computed(() => {
+                    return fullName.value.split('').reverse().join('');
+                });
+
+                // Todo列表
+                const todos = ref([
+                    { id: 1, text: '学习Vue3基础', completed: true },
+                    { id: 2, text: '掌握组合式API', completed: false },
+                    { id: 3, text: '构建实际项目', completed: false }
+                ]);
+                const newTodo = ref('');
+
+                const addTodo = () => {
+                    if (newTodo.value.trim()) {
+                        todos.value.push({
+                            id: Date.now(),
+                            text: newTodo.value,
+                            completed: false
+                        });
+                        newTodo.value = '';
+                    }
+                };
+
+                const removeTodo = (index) => {
+                    todos.value.splice(index, 1);
+                };
+
+                const clearCompleted = () => {
+                    todos.value = todos.value.filter(todo => !todo.completed);
+                };
+
+                const completedCount = computed(() => {
+                    return todos.value.filter(todo => todo.completed).length;
+                });
+
+                const remainingCount = computed(() => {
+                    return todos.value.filter(todo => !todo.completed).length;
+                });
+
+                // 表单绑定
+                const selectedOption = ref('选项A');
+                const hobbies = ref(['读书']);
+                const selectedCity = ref('北京');
+
+                // 侦听器
+                const question = ref('');
+                const answer = ref('问题通常包含问号 😊');
+                const userStatus = ref('online');
+                const statusLogs = ref([
+                    { id: 1, status: 'online', message: '用户上线 - ' + new Date().toLocaleTimeString() }
+                ]);
+
+                // 监听问题变化
+                watch(question, (newQuestion) => {
+                    if (newQuestion.indexOf('?') > -1) {
+                        answer.value = '正在思考中...';
+                        setTimeout(() => {
+                            const responses = [
+                                '这是一个很好的问题！',
+                                '答案可能是肯定的 ✅',
+                                '这需要进一步思考 🤔',
+                                '答案在Vue文档中可以找到 📚'
+                            ];
+                            answer.value = responses[Math.floor(Math.random() * responses.length)];
+                        }, 1000);
+                    } else {
+                        answer.value = '请输入包含问号的问题';
+                    }
+                });
+
+                // 监听用户状态变化
+                watch(userStatus, (newStatus, oldStatus) => {
+                    const statusText = {
+                        online: '在线',
+                        offline: '离线',
+                        away: '离开'
+                    };
+                    
+                    statusLogs.value.push({
+                        id: Date.now(),
+                        status: newStatus,
+                        message: `状态从 "${statusText[oldStatus]}" 变更为 "${statusText[newStatus]}" - ${new Date().toLocaleTimeString()}`
+                    });
+                    
+                    if (statusLogs.value.length > 3) {
+                        statusLogs.value.shift();
+                    }
+                });
+
+                // 条件渲染
+                const isVisible = ref(true);
+                const currentView = ref('home');
+                const views = ['home', 'profile', 'settings'];
+
+                const toggleVisibility = () => {
+                    isVisible.value = !isVisible.value;
+                };
+
+                const switchView = () => {
+                    const currentIndex = views.indexOf(currentView.value);
+                    currentView.value = views[(currentIndex + 1) % views.length];
+                };
+
+                // 图书管理
+                const books = ref([
+                    'Vue.js 设计与实现',
+                    'JavaScript高级程序设计',
+                    'TypeScript编程'
+                ]);
+                const newBook = ref('');
+
+                const addBook = () => {
+                    if (newBook.value.trim()) {
+                        books.value.push(newBook.value);
+                        newBook.value = '';
+                    }
+                };
+
+                const removeBook = (index) => {
+                    books.value.splice(index, 1);
+                };
+
+                const booksMessage = computed(() => {
+                    return books.value.length > 0 ? `共有 ${books.value.length} 本图书` : '暂无图书';
+                });
+
+                return {
+                    // 响应式系统
+                    message,
+                    user,
+                    
+                    // 计数器
+                    count,
+                    operationHistory,
+                    increment,
+                    decrement,
+                    reset,
+                    addTen,
+                    
+                    // 计算属性
+                    firstName,
+                    lastName,
+                    fullName,
+                    fullNameLength,
+                    reversedFullName,
+                    
+                    // Todo列表
+                    todos,
+                    newTodo,
+                    addTodo,
+                    removeTodo,
+                    clearCompleted,
+                    completedCount,
+                    remainingCount,
+                    
+                    // 表单绑定
+                    selectedOption,
+                    hobbies,
+                    selectedCity,
+                    
+                    // 侦听器
+                    question,
+                    answer,
+                    userStatus,
+                    statusLogs,
+                    
+                    // 条件渲染
+                    isVisible,
+                    currentView,
+                    toggleVisibility,
+                    switchView,
+                    
+                    // 图书管理
+                    books,
+                    newBook,
+                    addBook,
+                    removeBook,
+                    booksMessage
+                };
+            }
+        }).mount('#app');
+        }
+
+        // 页面加载完成后初始化应用
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+    </script>
+</body>
+</html> 

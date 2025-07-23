@@ -1,0 +1,2189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue2 增强版人脸识别 - 包含人脸库对比</title>
+    
+    <!-- Vue2 + Element UI -->
+    <script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    
+    <!-- face-api.js -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    
+    <!-- 人脸数据库管理器 -->
+    <script src="face-db-manager.js"></script>
+    
+    <!-- 调试助手 -->
+    <script src="debug-helper.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+        }
+        
+        .video-section {
+            text-align: center;
+        }
+        
+        .video-container {
+            position: relative;
+            display: inline-block;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin: 20px 0;
+        }
+        
+        #video {
+            display: block;
+            width: 640px;
+            height: 480px;
+            max-width: 100%;
+        }
+        
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+        
+        .controls {
+            margin: 25px 0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .face-library-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            height: fit-content;
+        }
+        
+        .upload-area {
+            border: 2px dashed #d0d7de;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            margin: 20px 0;
+            background: white;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+        
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e3f2fd;
+        }
+        
+        .face-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .face-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .face-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        
+        .face-card.matched {
+            border: 3px solid #67c23a;
+            background: #f0f9ff;
+        }
+        
+        .face-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 10px;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .face-name {
+            font-size: 12px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .confidence-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #67c23a;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .delete-btn {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            background: #f56565;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        
+        .recognition-results {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .match-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .match-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .match-info {
+            flex: 1;
+        }
+        
+        .match-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .match-confidence {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .settings-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+        }
+        
+        .setting-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .setting-label {
+            min-width: 120px;
+            font-weight: 500;
+            color: #666;
+        }
+        
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .comparison-mode {
+            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+        }
+        
+        .tech-specs {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .spec-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .spec-item:last-child {
+            border-bottom: none;
+        }
+        
+        .spec-label {
+            font-weight: 500;
+            color: #666;
+        }
+        
+        .spec-value {
+            color: #333;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-section {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            #video {
+                width: 100%;
+                height: auto;
+            }
+            
+            .face-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .stats-section {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <div class="header">
+                <h1>Vue2 增强版人脸识别系统</h1>
+                <p>支持人脸库管理和实时识别对比功能 (Options API)</p>
+            </div>
+            
+            <div class="content">
+                <div class="main-layout">
+                    <!-- 左侧：视频检测区域 -->
+                    <div class="video-section">
+                        <div class="video-container">
+                            <video
+                                id="video"
+                                ref="video"
+                                autoplay
+                                muted
+                                playsinline
+                            ></video>
+                            <canvas
+                                id="overlay"
+                                ref="overlay"
+                                width="640"
+                                height="480"
+                            ></canvas>
+                        </div>
+                        
+                        <!-- 控制按钮 -->
+                        <div class="controls">
+                            <el-button 
+                                type="primary" 
+                                @click="startCamera" 
+                                :disabled="isRunning"
+                                :loading="isLoading"
+                                size="medium"
+                            >
+                                {{ isLoading ? '加载中...' : '启动摄像头' }}
+                            </el-button>
+                            
+                            <el-button 
+                                type="danger" 
+                                @click="stopCamera" 
+                                :disabled="!isRunning"
+                                size="medium"
+                            >
+                                停止摄像头
+                            </el-button>
+                            
+                            <el-button 
+                                type="success" 
+                                @click="captureAndAdd" 
+                                :disabled="!isRunning || faceData.length === 0"
+                                size="medium"
+                            >
+                                添加到人脸库
+                            </el-button>
+                            
+                            <el-button 
+                                type="info" 
+                                @click="toggleComparison" 
+                                :disabled="!isRunning"
+                                size="medium"
+                            >
+                                {{ comparisonMode ? '关闭识别' : '开启识别' }}
+                            </el-button>
+                        </div>
+                        
+                        <!-- 对比模式提示 -->
+                        <div v-if="comparisonMode" class="comparison-mode">
+                            <h4 style="margin: 0 0 10px 0;">🔍 人脸识别模式已开启</h4>
+                            <p style="margin: 0;">正在与人脸库中的 {{ faceLibrary.length }} 个人脸进行实时对比</p>
+                        </div>
+                        
+                        <!-- 统计信息 -->
+                        <div class="stats-section">
+                            <div class="stat-card">
+                                <span class="stat-value">{{ faceData.length }}</span>
+                                <div class="stat-label">检测人脸</div>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-value">{{ matchedFaces.length }}</span>
+                                <div class="stat-label">识别匹配</div>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-value">{{ fps }}</span>
+                                <div class="stat-label">FPS</div>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-value">{{ faceLibrary.length }}</span>
+                                <div class="stat-label">人脸库</div>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-value">{{ detectionCount }}</span>
+                                <div class="stat-label">检测次数</div>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-value">{{ averageConfidence }}%</span>
+                                <div class="stat-label">平均置信度</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 识别结果 -->
+                        <div v-if="matchedFaces.length > 0" class="recognition-results">
+                            <h3 style="margin: 0 0 15px 0; color: #333;">识别结果</h3>
+                            <div 
+                                v-for="(match, index) in matchedFaces" 
+                                :key="index"
+                                class="match-item"
+                            >
+                                <img :src="match.faceImage" class="match-avatar" alt="匹配人脸">
+                                <div class="match-info">
+                                    <div class="match-name">{{ match.name }}</div>
+                                    <div class="match-confidence">
+                                        相似度: {{ (match.confidence * 100).toFixed(1) }}%
+                                        <span v-if="match.distance < 0.4" style="color: #67c23a; margin-left: 10px;">✓ 高度匹配</span>
+                                        <span v-else-if="match.distance < 0.6" style="color: #e6a23c; margin-left: 10px;">⚠ 可能匹配</span>
+                                        <span v-else style="color: #f56c6c; margin-left: 10px;">✗ 低匹配度</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 设置面板 -->
+                        <div class="settings-panel">
+                            <h3 style="margin: 0 0 15px 0; color: #333;">检测设置</h3>
+                            
+                            <div class="setting-item">
+                                <span class="setting-label">检测阈值:</span>
+                                <el-slider
+                                    v-model="detectionScore"
+                                    :min="0.1"
+                                    :max="1"
+                                    :step="0.1"
+                                    show-input
+                                    style="flex: 1;"
+                                />
+                            </div>
+                            
+                            <div class="setting-item">
+                                <span class="setting-label">识别阈值:</span>
+                                <el-slider
+                                    v-model="recognitionThreshold"
+                                    :min="0.3"
+                                    :max="0.8"
+                                    :step="0.05"
+                                    show-input
+                                    style="flex: 1;"
+                                />
+                            </div>
+                            
+                            <div class="setting-item">
+                                <span class="setting-label">检测间隔:</span>
+                                <el-slider
+                                    v-model="detectionInterval"
+                                    :min="100"
+                                    :max="1000"
+                                    :step="100"
+                                    show-input
+                                    style="flex: 1;"
+                                />
+                            </div>
+                            
+                            <div class="setting-item">
+                                <span class="setting-label">输入尺寸:</span>
+                                <el-select v-model="inputSize" size="small" style="width: 120px;">
+                                    <el-option label="128" :value="128" />
+                                    <el-option label="160" :value="160" />
+                                    <el-option label="224" :value="224" />
+                                    <el-option label="320" :value="320" />
+                                    <el-option label="416" :value="416" />
+                                    <el-option label="512" :value="512" />
+                                </el-select>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <span class="setting-label">目标FPS:</span>
+                                <el-select v-model="targetFPS" size="small" style="width: 120px;">
+                                    <el-option label="15 FPS" :value="15" />
+                                    <el-option label="30 FPS" :value="30" />
+                                    <el-option label="60 FPS" :value="60" />
+                                </el-select>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <span class="setting-label">显示关键点:</span>
+                                <el-switch
+                                    v-model="showLandmarks"
+                                    active-text="开启"
+                                    inactive-text="关闭"
+                                />
+                            </div>
+                            
+                            <div class="setting-item">
+                                <span class="setting-label">显示表情:</span>
+                                <el-switch
+                                    v-model="showExpressions"
+                                    active-text="开启"
+                                    inactive-text="关闭"
+                                />
+                            </div>
+                        </div>
+                        
+                        <!-- 系统信息面板 -->
+                        <div class="settings-panel">
+                            <h3 style="margin: 0 0 15px 0; color: #333;">系统信息</h3>
+                            
+                            <div class="tech-specs">
+                                <div class="spec-item">
+                                    <span class="spec-label">框架版本:</span>
+                                    <span class="spec-value">Vue 2.x</span>
+                                </div>
+                                
+                                <div class="spec-item">
+                                    <span class="spec-label">检测引擎:</span>
+                                    <span class="spec-value">TinyFaceDetector</span>
+                                </div>
+                                
+                                <div class="spec-item">
+                                    <span class="spec-label">输入尺寸:</span>
+                                    <span class="spec-value">{{ inputSize }}x{{ inputSize }}</span>
+                                </div>
+                                
+                                <div class="spec-item">
+                                    <span class="spec-label">当前阈值:</span>
+                                    <span class="spec-value">{{ detectionScore }}</span>
+                                </div>
+                                
+                                <div class="spec-item">
+                                    <span class="spec-label">检测间隔:</span>
+                                    <span class="spec-value">{{ detectionInterval }}ms</span>
+                                </div>
+                                
+                                <div class="spec-item">
+                                    <span class="spec-label">浏览器支持:</span>
+                                    <span class="spec-value">
+                                        <el-tag :type="browserSupport ? 'success' : 'danger'" size="small">
+                                            {{ browserSupport ? '支持' : '不支持' }}
+                                        </el-tag>
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <!-- 功能特性 -->
+                            <h4 style="margin: 20px 0 15px 0; color: #666;">功能特性</h4>
+                            <div>
+                                <el-tag v-for="feature in features" :key="feature" style="margin: 3px;">
+                                    {{ feature }}
+                                </el-tag>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 右侧：人脸库管理 -->
+                    <div class="face-library-panel">
+                        <h3 style="margin: 0 0 20px 0; color: #333;">人脸库管理</h3>
+                        
+                        <!-- 上传区域 -->
+                        <div 
+                            class="upload-area"
+                            @click="$refs.fileInput.click()"
+                            @dragover.prevent="handleDragOver"
+                            @dragleave.prevent="handleDragLeave"
+                            @drop.prevent="handleDrop"
+                            :class="{ dragover: isDragging }"
+                        >
+                            <i class="el-icon-upload" style="font-size: 48px; color: #909399; margin-bottom: 10px;"></i>
+                            <div style="color: #606266; margin-bottom: 10px;">
+                                点击或拖拽上传人脸照片
+                            </div>
+                            <div style="color: #909399; font-size: 12px;">
+                                支持 JPG、PNG 格式
+                            </div>
+                        </div>
+                        
+                        <input 
+                            ref="fileInput" 
+                            type="file" 
+                            accept="image/*" 
+                            multiple
+                            style="display: none"
+                            @change="handleFileSelect"
+                        >
+                        
+                        <!-- 批量操作 -->
+                        <div style="margin: 15px 0; display: flex; gap: 10px; flex-wrap: wrap;">
+                            <el-button 
+                                size="small" 
+                                type="primary"
+                                @click="importLibrary"
+                                icon="el-icon-upload"
+                            >
+                                导入数据
+                            </el-button>
+                            <el-button 
+                                size="small" 
+                                type="info"
+                                @click="exportLibrary"
+                                :disabled="faceLibrary.length === 0"
+                                icon="el-icon-download"
+                            >
+                                📥 导出JSON
+                            </el-button>
+                            <el-button 
+                                size="small" 
+                                type="success"
+                                @click="exportImages"
+                                :disabled="faceLibrary.length === 0"
+                                icon="el-icon-picture"
+                            >
+                                🖼️ 导出图片
+                            </el-button>
+                            <el-button 
+                                size="small" 
+                                type="warning"
+                                @click="clearLibrary"
+                                :disabled="faceLibrary.length === 0"
+                                icon="el-icon-delete"
+                            >
+                                清空人脸库
+                            </el-button>
+                        </div>
+                        
+                        <!-- 高级操作 -->
+                        <div style="margin: 15px 0; border-top: 1px solid #e0e0e0; padding-top: 15px;">
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <el-button 
+                                    size="small" 
+                                    type="success"
+                                    @click="showStorageUsage"
+                                    icon="el-icon-pie-chart"
+                                >
+                                    存储使用情况
+                                </el-button>
+                                <el-button 
+                                    size="small" 
+                                    type="danger"
+                                    @click="clearAllCache"
+                                    icon="el-icon-refresh"
+                                >
+                                    清除所有缓存
+                                </el-button>
+                            </div>
+                            <div style="margin-top: 8px; font-size: 11px; color: #999; line-height: 1.4;">
+                                ⚠️ "清除所有缓存"将彻底删除所有本地数据，包括人脸库、设置和缓存，操作不可撤销
+                            </div>
+                        </div>
+                        
+                        <!-- 数据库状态信息 -->
+                        <div style="background: #f8f9fa; border-radius: 8px; padding: 15px; margin: 15px 0; font-size: 12px; color: #666;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>💾 本地数据库存储</span>
+                                <el-button size="mini" type="text" @click="showDatabaseStats">
+                                    查看统计
+                                </el-button>
+                            </div>
+                            <div style="margin-top: 8px; font-size: 11px; opacity: 0.8;">
+                                数据自动保存到浏览器IndexedDB，永久存储
+                            </div>
+                        </div>
+                        
+                        <!-- 人脸库展示 -->
+                        <div v-if="faceLibrary.length === 0" style="text-align: center; color: #909399; padding: 40px 0;">
+                            暂无人脸数据<br>
+                            <small>请上传照片或从摄像头添加</small>
+                        </div>
+                        
+                        <div v-else class="face-grid">
+                            <div 
+                                v-for="(face, index) in faceLibrary" 
+                                :key="face.id"
+                                class="face-card"
+                                :class="{ matched: isMatched(face.id) }"
+                            >
+                                <button 
+                                    class="delete-btn"
+                                    @click="removeFace(index)"
+                                    title="删除"
+                                >
+                                    ×
+                                </button>
+                                
+                                <img :src="face.image" class="face-image" :alt="face.name">
+                                <div class="face-name">{{ face.name }}</div>
+                                <div style="font-size: 11px; color: #909399;">
+                                    {{ new Date(face.timestamp).toLocaleDateString() }}
+                                </div>
+                                
+                                <div 
+                                    v-if="isMatched(face.id)" 
+                                    class="confidence-badge"
+                                    :title="`匹配度: ${getMatchConfidence(face.id)}%`"
+                                >
+                                    {{ getMatchConfidence(face.id) }}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 添加人脸对话框 -->
+        <el-dialog 
+            :visible.sync="showAddDialog" 
+            title="添加到人脸库"
+            width="500px"
+            center
+        >
+            <div style="text-align: center;">
+                <canvas 
+                    ref="captureCanvas" 
+                    width="300" 
+                    height="300" 
+                    style="border: 2px solid #e0e0e0; border-radius: 10px; margin-bottom: 20px; max-width: 250px; max-height: 250px;"
+                ></canvas>
+                
+                <el-form label-width="80px">
+                    <el-form-item label="姓名:">
+                        <el-input 
+                            v-model="newFaceName" 
+                            placeholder="请输入姓名"
+                            maxlength="20"
+                            show-word-limit
+                        />
+                    </el-form-item>
+                    <el-form-item label="备注:">
+                        <el-input 
+                            v-model="newFaceNote" 
+                            placeholder="可选备注信息"
+                            maxlength="50"
+                            show-word-limit
+                        />
+                    </el-form-item>
+                </el-form>
+            </div>
+            
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="showAddDialog = false">取消</el-button>
+                <el-button type="primary" @click="confirmAddFace" :disabled="!newFaceName.trim()">
+                    添加到人脸库
+                </el-button>
+            </span>
+        </el-dialog>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    // 基础状态
+                    isRunning: false,
+                    isDetecting: true,
+                    isLoading: false,
+                    modelsLoaded: false,
+                    comparisonMode: false,
+                    
+                    // 检测数据
+                    faceData: [],
+                    matchedFaces: [],
+                    stream: null,
+                    detectionIntervalId: null,
+                    
+                    // 人脸库
+                    faceLibrary: [],
+                    faceMatcher: null,
+                    faceDB: null,  // IndexedDB 管理器
+                    
+                    // 设置
+                    recognitionThreshold: 0.6,
+                    detectionInterval: 200,
+                    showLandmarks: true,
+                    showExpressions: true,
+                    
+                    // 检测参数
+                    detectionScore: 0.5,
+                    inputSize: 416,
+                    targetFPS: 30,
+                    
+                    // 统计信息
+                    detectionCount: 0,
+                    
+                    // 浏览器支持检测
+                    browserSupport: false,
+                    
+                    // UI 状态
+                    showAddDialog: false,
+                    newFaceName: '',
+                    newFaceNote: '',
+                    currentCapturedFace: null,
+                    isDragging: false,
+                    
+                    // 性能统计
+                    fps: 0,
+                    fpsCounter: 0,
+                    lastFpsUpdate: Date.now()
+                }
+            },
+            
+            computed: {
+                averageConfidence() {
+                    if (this.faceData.length === 0) return 0
+                    const total = this.faceData.reduce((sum, face) => 
+                        sum + face.detection.score, 0
+                    )
+                    return ((total / this.faceData.length) * 100).toFixed(1)
+                },
+                
+                features() {
+                    return [
+                        '实时人脸检测',
+                        '68个关键点',
+                        '7种表情识别', 
+                        '年龄性别预测',
+                        '多人脸检测',
+                        '人脸库管理',
+                        '实时识别对比',
+                        '数据持久化'
+                    ]
+                }
+            },
+            
+                            watch: {
+                detectionInterval(newInterval) {
+                    if (this.isDetecting) {
+                        this.stopDetection()
+                        this.startDetection()
+                    }
+                },
+                
+                recognitionThreshold() {
+                    this.updateFaceMatcher()
+                },
+                
+                faceLibrary: {
+                    handler() {
+                        this.updateFaceMatcher()
+                    },
+                    deep: true
+                }
+            },
+            
+            async mounted() {
+                console.log('🚀 组件初始化开始...')
+                
+                // 检查浏览器支持
+                this.checkBrowserSupport()
+                
+                try {
+                    // 初始化数据库
+                    console.log('🗄️ 初始化数据库...')
+                    this.faceDB = window.faceDB || new FaceDBManager()
+                    console.log('📋 数据库管理器创建:', !!this.faceDB)
+                    
+                    await this.faceDB.init()
+                    console.log('✅ 数据库初始化完成')
+                    
+                    // 加载模型和人脸库
+                    console.log('🧠 开始加载AI模型...')
+                    await this.loadModels()
+                    
+                    console.log('📚 开始加载人脸库...')
+                    await this.loadFaceLibrary()
+                    
+                    console.log('🎉 组件初始化完成')
+                } catch (error) {
+                    console.error('❌ 组件初始化失败:', error)
+                    this.$message.error('初始化失败: ' + error.message)
+                }
+            },
+            
+
+            
+            methods: {
+                // 浏览器支持检测
+                checkBrowserSupport() {
+                    this.browserSupport = !!(
+                        navigator.mediaDevices && 
+                        navigator.mediaDevices.getUserMedia &&
+                        document.createElement('canvas').getContext('webgl')
+                    )
+                },
+                
+                // 表情标签映射
+                getExpressionLabel(expression) {
+                    const labels = {
+                        neutral: '中性',
+                        happy: '开心',
+                        sad: '悲伤',
+                        angry: '愤怒',
+                        fearful: '恐惧',
+                        disgusted: '厌恶',
+                        surprised: '惊讶'
+                    }
+                    return labels[expression] || expression
+                },
+                
+                // 模型加载
+                async loadModels() {
+                    this.isLoading = true
+                    
+                    try {
+                        console.log('开始加载增强版模型...')
+                        const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model'
+                        
+                        await Promise.all([
+                            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+                            faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL),
+                            faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL)
+                        ])
+                        
+                        this.modelsLoaded = true
+                        console.log('增强版模型加载完成')
+                        this.$message.success('人脸识别模型加载完成')
+                    } catch (error) {
+                        console.error('模型加载失败:', error)
+                        this.$message.error('模型加载失败，请检查网络连接')
+                    } finally {
+                        this.isLoading = false
+                    }
+                },
+                
+                // 摄像头控制
+                async startCamera() {
+                    if (!this.modelsLoaded) {
+                        this.$message.warning('模型尚未加载完成')
+                        return
+                    }
+                    
+                    try {
+                        this.stream = await navigator.mediaDevices.getUserMedia({
+                            video: { width: 640, height: 480, facingMode: 'user' },
+                            audio: false
+                        })
+                        
+                        this.$refs.video.srcObject = this.stream
+                        
+                        this.$refs.video.addEventListener('loadedmetadata', () => {
+                            this.isRunning = true
+                            this.isDetecting = true  // 确保检测状态为开启
+                            this.startDetection()
+                        })
+                        
+                        this.$message.success('摄像头启动成功')
+                    } catch (error) {
+                        this.$message.error('摄像头访问失败: ' + error.message)
+                    }
+                },
+                
+                stopCamera() {
+                    this.cleanup()
+                    this.isRunning = false
+                    this.isDetecting = false
+                    this.comparisonMode = false
+                    this.faceData = []
+                    this.matchedFaces = []
+                    this.fps = 0
+                    this.$message.info('摄像头已停止')
+                },
+                
+                // 检测控制
+                startDetection() {
+                    if (!this.isDetecting) return
+                    
+                    this.detectionIntervalId = setInterval(async () => {
+                        await this.detectFaces()
+                        this.updateFPS()
+                    }, this.detectionInterval)
+                },
+                
+                stopDetection() {
+                    if (this.detectionIntervalId) {
+                        clearInterval(this.detectionIntervalId)
+                        this.detectionIntervalId = null
+                    }
+                },
+                
+                // 人脸检测
+                async detectFaces() {
+                    const video = this.$refs.video
+                    const canvas = this.$refs.overlay
+                    
+                    if (!video || !canvas || !this.modelsLoaded) return
+                    
+                    try {
+                        const options = new faceapi.TinyFaceDetectorOptions({
+                            inputSize: this.inputSize,
+                            scoreThreshold: this.detectionScore
+                        })
+                        
+                        // 基础检测（始终可用）
+                        let detections = await faceapi
+                            .detectAllFaces(video, options)
+                            .withFaceLandmarks()
+                            .withFaceExpressions()
+                            .withAgeAndGender()
+                        
+                        // 如果需要人脸识别功能，添加描述符
+                        if (this.comparisonMode && detections.length > 0) {
+                            try {
+                                detections = await faceapi
+                                    .detectAllFaces(video, options)
+                                    .withFaceLandmarks()
+                                    .withFaceDescriptors()
+                                    .withFaceExpressions()
+                                    .withAgeAndGender()
+                            } catch (descriptorError) {
+                                console.warn('描述符提取失败，使用基础检测:', descriptorError)
+                                // 继续使用基础检测结果
+                            }
+                        }
+                        
+                        // 清除画布
+                        const ctx = canvas.getContext('2d')
+                        ctx.clearRect(0, 0, canvas.width, canvas.height)
+                        
+                        // 更新检测数据
+                        this.faceData = detections.map(detection => ({
+                            detection: detection.detection,
+                            landmarks: detection.landmarks,
+                            descriptor: detection.descriptor || null,
+                            expressions: detection.expressions,
+                            age: detection.age,
+                            gender: detection.gender
+                        }))
+                        
+                        // 调试日志：显示检测到的人脸数量
+                        if (this.faceData.length > 0) {
+                            console.log('👤 检测到人脸:', this.faceData.length, '个，最高置信度:', 
+                                Math.max(...this.faceData.map(f => f.detection.score)).toFixed(3))
+                        }
+                        
+                        // 人脸识别对比
+                        if (this.comparisonMode && this.faceMatcher && detections.some(d => d.descriptor)) {
+                            this.performFaceRecognition(detections)
+                        } else {
+                            this.matchedFaces = []
+                        }
+                        
+                        // 绘制结果
+                        this.drawDetections(detections, canvas)
+                        
+                        // 更新统计信息
+                        this.detectionCount++
+                        
+                    } catch (error) {
+                        console.error('检测失败:', error)
+                    }
+                },
+                
+                // 人脸识别对比
+                performFaceRecognition(detections) {
+                    const matches = []
+                    
+                    detections.forEach((detection, index) => {
+                        if (detection.descriptor && this.faceMatcher) {
+                            try {
+                                const bestMatch = this.faceMatcher.findBestMatch(detection.descriptor)
+                                
+                                if (bestMatch.distance < this.recognitionThreshold) {
+                                    const faceInLibrary = this.faceLibrary.find(f => f.name === bestMatch.label)
+                                    if (faceInLibrary) {
+                                        matches.push({
+                                            faceId: faceInLibrary.id,
+                                            name: bestMatch.label,
+                                            distance: bestMatch.distance,
+                                            confidence: 1 - bestMatch.distance,
+                                            faceImage: faceInLibrary.image,
+                                            detectionIndex: index
+                                        })
+                                    }
+                                }
+                            } catch (error) {
+                                console.warn('人脸匹配失败:', error)
+                            }
+                        }
+                    })
+                    
+                    this.matchedFaces = matches
+                },
+                
+                // 绘制检测结果
+                drawDetections(detections, canvas) {
+                    const ctx = canvas.getContext('2d')
+                    
+                    detections.forEach((detection, index) => {
+                        const { x, y, width, height } = detection.detection.box
+                        
+                        // 检查是否有匹配
+                        const match = this.matchedFaces.find(m => m.detectionIndex === index)
+                        const isMatched = !!match
+                        
+                        // 绘制人脸框
+                        ctx.strokeStyle = isMatched ? '#67c23a' : '#00ff00'
+                        ctx.lineWidth = isMatched ? 4 : 3
+                        ctx.strokeRect(x, y, width, height)
+                        
+                        // 绘制标签
+                        const score = (detection.detection.score * 100).toFixed(1)
+                        let label = `人脸 ${index + 1} (${score}%)`
+                        
+                        if (isMatched) {
+                            label = `${match.name} (${(match.confidence * 100).toFixed(1)}%)`
+                        }
+                        
+                        ctx.font = 'bold 16px Arial'
+                        const textWidth = ctx.measureText(label).width
+                        
+                        ctx.fillStyle = isMatched ? 'rgba(103, 194, 58, 0.9)' : 'rgba(0, 255, 0, 0.8)'
+                        ctx.fillRect(x, y - 30, textWidth + 10, 25)
+                        
+                        ctx.fillStyle = 'white'
+                        ctx.fillText(label, x + 5, y - 10)
+                        
+                        // 绘制年龄性别信息
+                        if (detection.age && detection.gender) {
+                            const ageText = `年龄: ${Math.round(detection.age)}岁`
+                            const genderText = `性别: ${detection.gender === 'male' ? '男' : '女'}`
+                            const genderConfidence = Math.round(detection.genderProbability * 100)
+                            
+                            ctx.font = '12px Arial'
+                            const ageWidth = ctx.measureText(ageText).width
+                            const genderWidth = ctx.measureText(genderText).width
+                            const maxWidth = Math.max(ageWidth, genderWidth)
+                            
+                            // 年龄信息
+                            ctx.fillStyle = 'rgba(255, 165, 0, 0.8)'
+                            ctx.fillRect(x, y + height + 5, ageWidth + 8, 18)
+                            ctx.fillStyle = 'white'
+                            ctx.fillText(ageText, x + 4, y + height + 18)
+                            
+                            // 性别信息
+                            ctx.fillStyle = 'rgba(255, 20, 147, 0.8)'
+                            ctx.fillRect(x, y + height + 25, genderWidth + 8, 18)
+                            ctx.fillStyle = 'white'
+                            ctx.fillText(genderText, x + 4, y + height + 38)
+                            
+                            // 性别置信度
+                            if (genderConfidence < 80) {
+                                const confidenceText = `置信度: ${genderConfidence}%`
+                                ctx.font = '10px Arial'
+                                const confWidth = ctx.measureText(confidenceText).width
+                                ctx.fillStyle = 'rgba(255, 0, 0, 0.7)'
+                                ctx.fillRect(x, y + height + 45, confWidth + 6, 14)
+                                ctx.fillStyle = 'white'
+                                ctx.fillText(confidenceText, x + 3, y + height + 55)
+                            }
+                        }
+                        
+                        // 绘制关键点
+                        if (this.showLandmarks && detection.landmarks) {
+                            ctx.fillStyle = isMatched ? '#67c23a' : '#ff0000'
+                            detection.landmarks.positions.forEach(point => {
+                                ctx.beginPath()
+                                ctx.arc(point.x, point.y, 2, 0, 2 * Math.PI)
+                                ctx.fill()
+                            })
+                        }
+                        
+                        // 绘制表情信息
+                        if (this.showExpressions && detection.expressions) {
+                            const expressions = Object.entries(detection.expressions)
+                                .sort(([,a], [,b]) => b - a)
+                                .slice(0, 2) // 显示前2个表情
+                            
+                            expressions.forEach(([expression, confidence], i) => {
+                                if (confidence > 0.3) { // 只显示置信度较高的表情
+                                    const expressionText = `${this.getExpressionLabel(expression)}: ${Math.round(confidence * 100)}%`
+                                    
+                                    ctx.font = '12px Arial'
+                                    const textWidth = ctx.measureText(expressionText).width
+                                    const yPos = y + height + (detection.age && detection.gender ? 65 : 20) + i * 20
+                                    
+                                    ctx.fillStyle = 'rgba(0, 0, 255, 0.8)'
+                                    ctx.fillRect(x, yPos - 15, textWidth + 8, 18)
+                                    
+                                    ctx.fillStyle = 'white'
+                                    ctx.fillText(expressionText, x + 4, yPos)
+                                }
+                            })
+                        }
+                    })
+                },
+                
+                // 人脸库管理
+                updateFaceMatcher() {
+                    if (this.faceLibrary.length === 0) {
+                        this.faceMatcher = null
+                        return
+                    }
+                    
+                    const facesWithDescriptors = this.faceLibrary.filter(face => face.descriptor && face.descriptor.length > 0)
+                    
+                    if (facesWithDescriptors.length === 0) {
+                        this.faceMatcher = null
+                        console.log('人脸库中没有可用于识别的人脸（缺少描述符）')
+                        return
+                    }
+                    
+                    try {
+                        const labeledDescriptors = facesWithDescriptors.map(face => new faceapi.LabeledFaceDescriptors(
+                            face.name,
+                            [new Float32Array(face.descriptor)]
+                        ))
+                        
+                        this.faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, this.recognitionThreshold)
+                        console.log(`人脸匹配器已更新，包含 ${labeledDescriptors.length} 个可识别的人脸`)
+                    } catch (error) {
+                        console.error('更新人脸匹配器失败:', error)
+                        this.faceMatcher = null
+                    }
+                },
+                
+                async captureAndAdd() {
+                    console.log('🎯 开始捕获人脸，当前检测到的人脸数量:', this.faceData.length)
+                    
+                    if (this.faceData.length === 0) {
+                        this.$message.warning('未检测到人脸')
+                        return
+                    }
+                    
+                    // 选择置信度最高的人脸
+                    const bestFace = this.faceData.reduce((best, current) => 
+                        current.detection.score > best.detection.score ? current : best
+                    )
+                    
+                    console.log('📋 选择的最佳人脸:', {
+                        score: bestFace.detection.score,
+                        hasDescriptor: !!bestFace.descriptor,
+                        box: bestFace.detection.box
+                    })
+                    
+                    // 检查视频元素
+                    const video = this.$refs.video
+                    
+                    console.log('🎬 视频元素状态:', {
+                        video: !!video,
+                        videoReady: video && video.readyState >= 2
+                    })
+                    
+                    if (!video) {
+                        this.$message.error('视频元素未找到')
+                        return
+                    }
+                    
+                    if (video.readyState < 2) {
+                        this.$message.warning('视频尚未准备就绪，请稍后再试')
+                        return
+                    }
+                    
+                    // 先创建临时canvas来捕获人脸图像
+                    const tempCanvas = document.createElement('canvas')
+                    tempCanvas.width = 300  // 增大尺寸
+                    tempCanvas.height = 300
+                    const ctx = tempCanvas.getContext('2d')
+                    
+                    const { x, y, width, height } = bestFace.detection.box
+                    
+                    // 添加padding，扩展捕获区域
+                    const padding = Math.max(width, height) * 0.3  // 30%的padding
+                    const expandedX = Math.max(0, x - padding)
+                    const expandedY = Math.max(0, y - padding)
+                    const expandedWidth = Math.min(video.videoWidth - expandedX, width + padding * 2)
+                    const expandedHeight = Math.min(video.videoHeight - expandedY, height + padding * 2)
+                    
+                    console.log('🖼️ 图像捕获参数:', {
+                        original: { x, y, width, height },
+                        expanded: { x: expandedX, y: expandedY, width: expandedWidth, height: expandedHeight },
+                        padding: padding,
+                        videoSize: { width: video.videoWidth, height: video.videoHeight }
+                    })
+                    
+                    const scale = Math.min(300 / expandedWidth, 300 / expandedHeight)
+                    const scaledWidth = expandedWidth * scale
+                    const scaledHeight = expandedHeight * scale
+                    
+                    try {
+                        ctx.clearRect(0, 0, 300, 300)
+                        ctx.drawImage(
+                            video,
+                            expandedX, expandedY, expandedWidth, expandedHeight,
+                            (300 - scaledWidth) / 2, (300 - scaledHeight) / 2, scaledWidth, scaledHeight
+                        )
+                        
+                                                 // 如果当前检测结果没有描述符，尝试重新提取
+                         let descriptor = bestFace.descriptor
+                         if (!descriptor) {
+                             console.log('🔄 当前检测无描述符，尝试重新提取...')
+                             
+                             // 检查 Face Recognition 模型是否已加载
+                             if (!this.modelsLoaded) {
+                                 console.error('❌ 模型未加载，无法提取描述符')
+                             } else {
+                                 console.log('✅ 模型已加载，开始重新提取描述符')
+                                 
+                                 // 尝试多种参数组合
+                                 const detectionOptions = [
+                                     new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 }),
+                                     new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 }),
+                                     new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.7 })
+                                 ]
+                                 
+                                 for (let i = 0; i < detectionOptions.length && !descriptor; i++) {
+                                     try {
+                                         console.log(`🔍 尝试参数组合 ${i + 1}:`, {
+                                             inputSize: detectionOptions[i].inputSize,
+                                             scoreThreshold: detectionOptions[i].scoreThreshold
+                                         })
+                                         
+                                         const faceDetection = await faceapi
+                                             .detectSingleFace(tempCanvas, detectionOptions[i])
+                                             .withFaceLandmarks()
+                                             .withFaceDescriptor()
+                                         
+                                         if (faceDetection && faceDetection.descriptor) {
+                                             descriptor = Array.from(faceDetection.descriptor)
+                                             console.log(`✅ 参数组合 ${i + 1} 成功提取描述符，长度:`, descriptor.length)
+                                             break
+                                         } else {
+                                             console.warn(`⚠️ 参数组合 ${i + 1} 未检测到人脸或无法提取描述符`)
+                                         }
+                                     } catch (error) {
+                                         console.error(`❌ 参数组合 ${i + 1} 出错:`, error.message)
+                                     }
+                                 }
+                                 
+                                 if (!descriptor) {
+                                     console.error('❌ 所有参数组合都无法提取描述符')
+                                     console.log('💡 建议：确保人脸清晰、光线充足、角度正面')
+                                 }
+                             }
+                         }
+                        
+                        this.currentCapturedFace = {
+                            detection: bestFace.detection,
+                            descriptor: descriptor,
+                            image: tempCanvas.toDataURL('image/jpeg', 0.9)
+                        }
+                        
+                        console.log('✅ 人脸捕获成功:', {
+                            hasImage: !!this.currentCapturedFace.image,
+                            hasDescriptor: !!this.currentCapturedFace.descriptor,
+                            descriptorLength: descriptor ? descriptor.length : 'N/A',
+                            imageSize: this.currentCapturedFace.image.length
+                        })
+                        
+                        this.newFaceName = ''
+                        this.newFaceNote = ''
+                        this.showAddDialog = true
+                        
+                        console.log('🔧 对话框已显示:', {
+                            showAddDialog: this.showAddDialog,
+                            faceDB: !!this.faceDB
+                        })
+                        
+                        // 等待对话框渲染完成后，将图像绘制到对话框中的canvas
+                        this.$nextTick(() => {
+                            this.drawCapturedFaceToDialog()
+                        })
+                        
+                    } catch (error) {
+                        console.error('❌ 图像捕获失败:', error)
+                        this.$message.error('图像捕获失败: ' + error.message)
+                    }
+                },
+                
+                // 将捕获的人脸图像绘制到对话框中的canvas
+                drawCapturedFaceToDialog() {
+                    if (!this.currentCapturedFace || !this.currentCapturedFace.image) {
+                        console.warn('⚠️ 没有捕获的人脸图像')
+                        return
+                    }
+                    
+                    const canvas = this.$refs.captureCanvas
+                    if (!canvas) {
+                        console.warn('⚠️ 对话框canvas元素未找到，可能对话框还未完全渲染')
+                        // 重试一次
+                        setTimeout(() => {
+                            this.drawCapturedFaceToDialog()
+                        }, 100)
+                        return
+                    }
+                    
+                    const ctx = canvas.getContext('2d')
+                    if (!ctx) {
+                        console.error('❌ 无法获取对话框canvas上下文')
+                        return
+                    }
+                    
+                    const img = new Image()
+                    img.onload = () => {
+                        ctx.clearRect(0, 0, 300, 300)
+                        ctx.drawImage(img, 0, 0, 300, 300)
+                        console.log('✅ 人脸图像已绘制到对话框')
+                    }
+                    img.onerror = (error) => {
+                        console.error('❌ 图像加载失败:', error)
+                    }
+                    img.src = this.currentCapturedFace.image
+                },
+                
+                async confirmAddFace() {
+                    console.log('💾 开始确认添加人脸:', {
+                        hasCapturedFace: !!this.currentCapturedFace,
+                        faceName: this.newFaceName,
+                        faceNote: this.newFaceNote,
+                        faceDB: !!this.faceDB
+                    })
+                    
+                    if (!this.currentCapturedFace || !this.newFaceName.trim()) {
+                        this.$message.warning('请输入姓名')
+                        return
+                    }
+                    
+                    if (!this.faceDB) {
+                        console.error('❌ 数据库未初始化')
+                        this.$message.error('数据库未初始化，请刷新页面重试')
+                        return
+                    }
+                    
+                    const newFace = {
+                        id: Date.now().toString(),
+                        name: this.newFaceName.trim(),
+                        note: this.newFaceNote.trim(),
+                        image: this.currentCapturedFace.image,
+                        descriptor: this.currentCapturedFace.descriptor ? Array.from(this.currentCapturedFace.descriptor) : null,
+                        timestamp: new Date().toISOString(),
+                        source: 'camera'  // 标记数据来源
+                    }
+                    
+                    console.log('📋 准备添加的人脸数据:', {
+                        id: newFace.id,
+                        name: newFace.name,
+                        hasImage: !!newFace.image,
+                        hasDescriptor: !!newFace.descriptor,
+                        descriptorLength: newFace.descriptor ? newFace.descriptor.length : 0,
+                        imageSize: newFace.image ? newFace.image.length : 0
+                    })
+                    
+                    try {
+                        console.log('🗄️ 开始保存到IndexedDB...')
+                        
+                        // 保存到IndexedDB
+                        const savedFace = await this.faceDB.addFace(newFace)
+                        console.log('✅ 保存到数据库成功:', savedFace.id)
+                        
+                        // 更新本地数组
+                        this.faceLibrary.push(newFace)
+                        console.log('📚 更新本地人脸库，当前数量:', this.faceLibrary.length)
+                        
+                        this.showAddDialog = false
+                        this.currentCapturedFace = null
+                        
+                        if (newFace.descriptor && newFace.descriptor.length === 128) {
+                            this.$message.success(`已添加 "${newFace.name}" 到人脸库（支持识别）`)
+                            console.log('🎯 添加成功 - 支持识别')
+                        } else {
+                            this.$message.warning(`已添加 "${newFace.name}" 到人脸库（仅存储，无法识别）\n请确保摄像头清晰并重新尝试`)
+                            console.log('📸 添加成功 - 仅存储')
+                        }
+                        
+                        // 验证保存结果
+                        setTimeout(async () => {
+                            try {
+                                const allFaces = await this.faceDB.getAllFaces()
+                                console.log('🔍 验证：数据库中的人脸总数:', allFaces.length)
+                            } catch (verifyError) {
+                                console.error('❌ 验证失败:', verifyError)
+                            }
+                        }, 500)
+                        
+                    } catch (error) {
+                        console.error('❌ 保存人脸失败:', error)
+                        console.error('❌ 错误详情:', {
+                            message: error.message,
+                            stack: error.stack,
+                            faceDB: !!this.faceDB
+                        })
+                        this.$message.error('保存到数据库失败: ' + error.message)
+                    }
+                },
+                
+                // 文件处理
+                handleFileSelect(event) {
+                    const files = Array.from(event.target.files)
+                    this.processImageFiles(files)
+                },
+                
+                handleDrop(event) {
+                    this.isDragging = false
+                    const files = Array.from(event.dataTransfer.files)
+                    this.processImageFiles(files.filter(file => file.type.startsWith('image/')))
+                },
+                
+                handleDragOver() {
+                    this.isDragging = true
+                },
+                
+                handleDragLeave() {
+                    this.isDragging = false
+                },
+                
+                async processImageFiles(files) {
+                    if (files.length === 0) return
+                    
+                    if (!this.modelsLoaded) {
+                        this.$message.warning('模型尚未加载完成，请稍后再试')
+                        return
+                    }
+                    
+                    const loading = this.$message({
+                        message: '正在处理图片...',
+                        type: 'info',
+                        duration: 0
+                    })
+                    
+                    let successCount = 0
+                    let errorMessages = []
+                    
+                    try {
+                        for (const file of files) {
+                            try {
+                                await this.processImageFile(file)
+                                successCount++
+                            } catch (error) {
+                                errorMessages.push(`${file.name}: ${error.message}`)
+                            }
+                        }
+                        
+                        loading.close()
+                        
+                        if (successCount > 0) {
+                            this.$message.success(`成功处理 ${successCount} 张图片`)
+                        }
+                        
+                        if (errorMessages.length > 0) {
+                            this.$message.warning(`部分图片处理失败:\n${errorMessages.slice(0, 3).join('\n')}${errorMessages.length > 3 ? '\n...' : ''}`)
+                        }
+                    } catch (error) {
+                        loading.close()
+                        this.$message.error('图片处理失败: ' + error.message)
+                    }
+                },
+                
+                processImageFile(file) {
+                    return new Promise((resolve, reject) => {
+                        const img = new Image()
+                        const canvas = document.createElement('canvas')
+                        const ctx = canvas.getContext('2d')
+                        
+                        img.onload = async () => {
+                            // 调整图片尺寸
+                            const maxSize = 640
+                            let { width, height } = img
+                            
+                            if (width > maxSize || height > maxSize) {
+                                const ratio = Math.min(maxSize / width, maxSize / height)
+                                width *= ratio
+                                height *= ratio
+                            }
+                            
+                            canvas.width = width
+                            canvas.height = height
+                            ctx.drawImage(img, 0, 0, width, height)
+                            
+                            try {
+                                // 多种检测策略，从宽松到严格
+                                const detectionOptions = [
+                                    new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 }),
+                                    new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.4 }),
+                                    new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.5 }),
+                                    new faceapi.TinyFaceDetectorOptions({ inputSize: 608, scoreThreshold: 0.6 })
+                                ]
+                                
+                                let detection = null
+                                
+                                // 尝试不同的检测参数
+                                for (let i = 0; i < detectionOptions.length && !detection; i++) {
+                                    try {
+                                        console.log(`🔍 尝试检测参数 ${i + 1}/${detectionOptions.length}:`, {
+                                            inputSize: detectionOptions[i].inputSize,
+                                            scoreThreshold: detectionOptions[i].scoreThreshold,
+                                            fileName: file.name
+                                        })
+                                        
+                                        detection = await faceapi
+                                            .detectSingleFace(canvas, detectionOptions[i])
+                                            .withFaceLandmarks()
+                                            .withFaceDescriptor()
+                                        
+                                        if (detection) {
+                                            console.log(`✅ 参数组合 ${i + 1} 成功检测到人脸:`, {
+                                                score: detection.detection.score,
+                                                box: detection.detection.box
+                                            })
+                                            break
+                                        } else {
+                                            console.log(`⚠️ 参数组合 ${i + 1} 未检测到人脸`)
+                                        }
+                                    } catch (error) {
+                                        console.warn(`❌ 参数组合 ${i + 1} 检测失败:`, error.message)
+                                    }
+                                }
+                                
+                                if (detection) {
+                                    // 提取人脸区域（添加padding）
+                                    const { x, y, width: faceWidth, height: faceHeight } = detection.detection.box
+                                    const faceCanvas = document.createElement('canvas')
+                                    const faceCtx = faceCanvas.getContext('2d')
+                                    
+                                    faceCanvas.width = 300  // 增大输出尺寸
+                                    faceCanvas.height = 300
+                                    
+                                    // 添加padding，扩展人脸区域
+                                    const padding = Math.max(faceWidth, faceHeight) * 0.4  // 40%的padding
+                                    const expandedX = Math.max(0, x - padding)
+                                    const expandedY = Math.max(0, y - padding)
+                                    const expandedWidth = Math.min(canvas.width - expandedX, faceWidth + padding * 2)
+                                    const expandedHeight = Math.min(canvas.height - expandedY, faceHeight + padding * 2)
+                                    
+                                    console.log(`📏 人脸区域扩展 ${file.name}:`, {
+                                        original: { x, y, width: faceWidth, height: faceHeight },
+                                        expanded: { x: expandedX, y: expandedY, width: expandedWidth, height: expandedHeight },
+                                        padding: padding
+                                    })
+                                    
+                                    const scale = Math.min(300 / expandedWidth, 300 / expandedHeight)
+                                    const scaledWidth = expandedWidth * scale
+                                    const scaledHeight = expandedHeight * scale
+                                    
+                                    faceCtx.clearRect(0, 0, 300, 300)
+                                    faceCtx.drawImage(
+                                        canvas,
+                                        expandedX, expandedY, expandedWidth, expandedHeight,
+                                        (300 - scaledWidth) / 2, (300 - scaledHeight) / 2, scaledWidth, scaledHeight
+                                    )
+                                    
+                                    const fileName = file.name.replace(/\.[^/.]+$/, "")
+                                    const newFace = {
+                                        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                                        name: fileName,
+                                        note: '',
+                                        image: faceCanvas.toDataURL('image/jpeg', 0.9),
+                                        descriptor: detection.descriptor ? Array.from(detection.descriptor) : null,
+                                        timestamp: new Date().toISOString(),
+                                        source: 'upload'  // 标记数据来源
+                                    }
+                                    
+                                    // 保存到IndexedDB
+                                    await this.faceDB.addFace(newFace)
+                                    this.faceLibrary.push(newFace)
+                                    resolve()
+                                } else {
+                                    reject(new Error(`未在图片 ${file.name} 中检测到人脸。建议：确保图片清晰、人脸正面且占比较大`))
+                                }
+                            } catch (error) {
+                                reject(error)
+                            }
+                        }
+                        
+                        img.onerror = () => reject(new Error('图片加载失败'))
+                        img.src = URL.createObjectURL(file)
+                    })
+                },
+                
+                // 其他功能
+                toggleComparison() {
+                    this.comparisonMode = !this.comparisonMode
+                    
+                    if (this.comparisonMode && this.faceLibrary.length === 0) {
+                        this.$message.warning('人脸库为空，请先添加人脸数据')
+                        this.comparisonMode = false
+                        return
+                    }
+                    
+                    this.$message.info(this.comparisonMode ? '人脸识别已开启' : '人脸识别已关闭')
+                },
+                
+                async removeFace(index) {
+                    try {
+                        const face = this.faceLibrary[index]
+                        await this.$confirm(
+                            `确定要删除 "${face.name}" 吗？`,
+                            '确认删除',
+                            { type: 'warning' }
+                        )
+                        
+                        // 从IndexedDB删除
+                        await this.faceDB.deleteFace(face.id)
+                        
+                        // 从本地数组删除
+                        this.faceLibrary.splice(index, 1)
+                        this.$message.success('删除成功')
+                    } catch (error) {
+                        if (error !== 'cancel') {
+                            console.error('删除人脸失败:', error)
+                            this.$message.error('删除失败: ' + error.message)
+                        }
+                    }
+                },
+                
+                async clearLibrary() {
+                    try {
+                        await this.$confirm(
+                            '确定要清空整个人脸库吗？此操作不可恢复！',
+                            '确认清空',
+                            { type: 'warning' }
+                        )
+                        
+                        // 清空IndexedDB
+                        await this.faceDB.clearAllFaces()
+                        
+                        // 清空本地数组
+                        this.faceLibrary = []
+                        this.matchedFaces = []
+                        this.$message.success('人脸库已清空')
+                    } catch (error) {
+                        if (error !== 'cancel') {
+                            console.error('清空人脸库失败:', error)
+                            this.$message.error('清空失败: ' + error.message)
+                        }
+                    }
+                },
+                
+                async exportLibrary() {
+                    try {
+                        // 从IndexedDB导出完整数据
+                        const data = await this.faceDB.exportData()
+                        
+                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+                        const url = URL.createObjectURL(blob)
+                        const link = document.createElement('a')
+                        link.href = url
+                        link.download = `face-library-vue2-${new Date().toISOString().split('T')[0]}.json`
+                        document.body.appendChild(link)
+                        link.click()
+                        document.body.removeChild(link)
+                        URL.revokeObjectURL(url)
+                        
+                        this.$message.success(`人脸库数据已导出 (${data.totalFaces} 个人脸)`)
+                    } catch (error) {
+                        console.error('导出失败:', error)
+                        this.$message.error('导出失败: ' + error.message)
+                    }
+                },
+                
+                // 导出图片
+                async exportImages() {
+                    try {
+                        if (this.faceLibrary.length === 0) {
+                            this.$message.warning('人脸库为空，无法导出图片')
+                            return
+                        }
+                        
+                        const loading = this.$message({
+                            message: '正在导出图片...',
+                            type: 'info',
+                            duration: 0
+                        })
+                        
+                        // 简化版：逐个下载图片
+                        for (let i = 0; i < this.faceLibrary.length; i++) {
+                            const face = this.faceLibrary[i]
+                            if (face.image) {
+                                const safeName = face.name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')
+                                const fileName = safeName + '_' + face.id + '.jpg'
+                                
+                                setTimeout(() => {
+                                    this.downloadBlob(this.dataURLToBlob(face.image), fileName)
+                                }, i * 200) // 延迟下载避免浏览器阻止
+                            }
+                        }
+                        
+                        // 下载信息文件
+                        setTimeout(() => {
+                            const infoText = this.createInfoFile()
+                            const infoBlob = new Blob([infoText], { type: 'text/plain;charset=utf-8' })
+                            const timestamp = new Date().toISOString().split('T')[0]
+                            this.downloadBlob(infoBlob, '人脸库信息_' + timestamp + '.txt')
+                        }, this.faceLibrary.length * 200 + 500)
+                        
+                        loading.close()
+                        this.$message.success('已开始导出 ' + this.faceLibrary.length + ' 张人脸图片，请等待浏览器下载完成')
+                        
+                    } catch (error) {
+                        console.error('导出图片失败:', error)
+                        this.$message.error('导出图片失败: ' + error.message)
+                    }
+                },
+                
+                // 创建信息文件
+                createInfoFile() {
+                    let info = `人脸库导出信息\n`
+                    info += `导出时间: ${new Date().toLocaleString()}\n`
+                    info += `总人脸数: ${this.faceLibrary.length}\n`
+                    info += `可识别数: ${this.faceLibrary.filter(f => f.descriptor).length}\n`
+                    info += `仅存储数: ${this.faceLibrary.filter(f => !f.descriptor).length}\n\n`
+                    
+                    info += `详细信息:\n`
+                    info += `${'='.repeat(50)}\n`
+                    
+                    this.faceLibrary.forEach((face, index) => {
+                        info += `${index + 1}. ${face.name}\n`
+                        info += `   ID: ${face.id}\n`
+                        info += `   备注: ${face.note || '无'}\n`
+                        info += `   添加时间: ${new Date(face.timestamp).toLocaleString()}\n`
+                        info += `   可识别: ${face.descriptor ? '是' : '否'}\n`
+                        if (face.descriptor) {
+                            info += `   描述符长度: ${face.descriptor.length}\n`
+                        }
+                        info += `\n`
+                    })
+                    
+                    return info
+                },
+                
+                // 数据URL转Blob
+                dataURLToBlob(dataURL) {
+                    const parts = dataURL.split(',')
+                    const mime = parts[0].match(/:(.*?);/)[1]
+                    const binary = atob(parts[1])
+                    const array = new Uint8Array(binary.length)
+                    for (let i = 0; i < binary.length; i++) {
+                        array[i] = binary.charCodeAt(i)
+                    }
+                    return new Blob([array], { type: mime })
+                },
+                
+                // 下载Blob文件
+                downloadBlob(blob, filename) {
+                    const url = URL.createObjectURL(blob)
+                    const link = document.createElement('a')
+                    link.href = url
+                    link.download = filename
+                    document.body.appendChild(link)
+                    link.click()
+                    document.body.removeChild(link)
+                    URL.revokeObjectURL(url)
+                },
+                
+                // 计算属性辅助方法
+                isMatched(faceId) {
+                    return this.matchedFaces.some(match => match.faceId === faceId)
+                },
+                
+                getMatchConfidence(faceId) {
+                    const match = this.matchedFaces.find(m => m.faceId === faceId)
+                    return match ? Math.round(match.confidence * 100) : 0
+                },
+                
+                // 数据持久化
+                async loadFaceLibrary() {
+                    try {
+                        console.log('📚 开始从数据库加载人脸库...')
+                        
+                        if (!this.faceDB) {
+                            console.error('❌ 数据库未初始化，无法加载人脸库')
+                            this.faceLibrary = []
+                            return
+                        }
+                        
+                        // 从IndexedDB加载人脸库
+                        this.faceLibrary = await this.faceDB.getAllFaces()
+                        console.log('✅ 人脸库加载完成，数量:', this.faceLibrary.length)
+                        
+                        // 显示统计信息
+                        const stats = await this.faceDB.getStats()
+                        console.log('📊 人脸库统计:', stats)
+                        
+                        if (this.faceLibrary.length > 0) {
+                            this.$message.success(`已加载 ${stats.totalFaces} 个人脸 (${stats.facesWithDescriptors} 个可识别)`)
+                        } else {
+                            console.log('📝 人脸库为空，这是首次使用')
+                        }
+                    } catch (error) {
+                        console.error('❌ 加载人脸库失败:', error)
+                        this.$message.error('加载人脸库失败: ' + error.message)
+                        this.faceLibrary = []
+                    }
+                },
+                
+                // 添加导入功能
+                async importLibrary() {
+                    const input = document.createElement('input')
+                    input.type = 'file'
+                    input.accept = '.json'
+                    
+                    input.onchange = async (event) => {
+                        const file = event.target.files[0]
+                        if (!file) return
+                        
+                        const loading = this.$message({
+                            message: '正在导入人脸库...',
+                            type: 'info',
+                            duration: 0
+                        })
+                        
+                        try {
+                            const text = await file.text()
+                            const data = JSON.parse(text)
+                            
+                            const results = await this.faceDB.importData(data)
+                            
+                            // 重新加载人脸库
+                            await this.loadFaceLibrary()
+                            
+                            loading.close()
+                            
+                            if (results.success > 0) {
+                                this.$message.success(`导入成功: ${results.success} 个人脸`)
+                            }
+                            
+                            if (results.failed > 0) {
+                                this.$message.warning(`导入失败: ${results.failed} 个人脸`)
+                            }
+                        } catch (error) {
+                            loading.close()
+                            console.error('导入失败:', error)
+                            this.$message.error('导入失败: ' + error.message)
+                        }
+                    }
+                    
+                    input.click()
+                },
+                
+                // 显示数据库统计
+                async showDatabaseStats() {
+                    try {
+                        const stats = await this.faceDB.getStats()
+                        
+                        let message = `📊 数据库统计信息\n\n`
+                        message += `总人脸数: ${stats.totalFaces}\n`
+                        message += `可识别人脸: ${stats.facesWithDescriptors}\n`
+                        message += `仅存储人脸: ${stats.facesWithoutDescriptors}\n\n`
+                        
+                        if (stats.databaseSize.estimated) {
+                            message += `存储空间使用: ${stats.databaseSize.usageInMB} MB\n`
+                            message += `可用空间: ${stats.databaseSize.quotaInMB} MB\n\n`
+                        }
+                        
+                        if (stats.totalFaces > 0) {
+                            message += `最早添加: ${new Date(stats.oldestFace).toLocaleDateString()}\n`
+                            message += `最新添加: ${new Date(stats.newestFace).toLocaleDateString()}`
+                        }
+                        
+                        this.$alert(message, '数据库统计', {
+                            type: 'info',
+                            dangerouslyUseHTMLString: false
+                        })
+                    } catch (error) {
+                        console.error('获取统计信息失败:', error)
+                        this.$message.error('获取统计信息失败')
+                    }
+                },
+                
+                // 显示存储使用情况
+                async showStorageUsage() {
+                    try {
+                        const usage = await this.faceDB.getStorageUsage()
+                        
+                        let message = `💾 浏览器存储使用情况\n\n`
+                        
+                        if (usage.total > 0) {
+                            message += `总使用量: ${this.faceDB.formatBytes(usage.total)}\n`
+                            message += `总配额: ${this.faceDB.formatBytes(usage.quota)}\n`
+                            message += `使用率: ${usage.percentage.toFixed(1)}%\n\n`
+                        }
+                        
+                        message += `📚 IndexedDB: ${this.faceDB.formatBytes(usage.indexedDB.size)}\n`
+                        message += `🗂️ LocalStorage: ${this.faceDB.formatBytes(usage.localStorage.size)}\n`
+                        message += `📋 SessionStorage: ${this.faceDB.formatBytes(usage.sessionStorage.size)}\n\n`
+                        
+                        message += `💡 提示：\n`
+                        message += `• IndexedDB 存储人脸数据和图片\n`
+                        message += `• LocalStorage 存储应用设置\n`
+                        message += `• SessionStorage 存储临时数据`
+                        
+                        this.$alert(message, '存储使用情况', {
+                            type: 'info',
+                            dangerouslyUseHTMLString: false
+                        })
+                    } catch (error) {
+                        console.error('获取存储使用情况失败:', error)
+                        this.$message.error('获取存储使用情况失败')
+                    }
+                },
+                
+                // 清除所有缓存
+                async clearAllCache() {
+                    try {
+                        const result = await this.$confirm(
+                            '⚠️ 警告：此操作将彻底清除所有本地数据！\n\n' +
+                            '将会删除以下内容：\n' +
+                            '• 所有人脸库数据 (IndexedDB)\n' +
+                            '• 应用设置和缓存 (LocalStorage)\n' +
+                            '• 临时数据 (SessionStorage)\n' +
+                            '• 网页缓存 (Cache API)\n' +
+                            '• Service Worker\n' +
+                            '• 相关 Cookies\n\n' +
+                            '此操作不可撤销，确定要继续吗？',
+                            '清除所有缓存',
+                            {
+                                confirmButtonText: '确定清除',
+                                cancelButtonText: '取消',
+                                type: 'warning',
+                                dangerouslyUseHTMLString: false
+                            }
+                        )
+                        
+                        // 二次确认
+                        await this.$confirm(
+                            '🔥 最后确认：您真的要删除所有数据吗？\n\n' +
+                            '这包括您辛苦建立的人脸库！\n' +
+                            '请确保您已经导出了重要数据的备份。',
+                            '最后确认',
+                            {
+                                confirmButtonText: '是的，全部删除',
+                                cancelButtonText: '等等，我再想想',
+                                type: 'error',
+                                dangerouslyUseHTMLString: false
+                            }
+                        )
+                        
+                        const loading = this.$loading({
+                            lock: true,
+                            text: '正在清除所有缓存...',
+                            spinner: 'el-icon-loading',
+                            background: 'rgba(0, 0, 0, 0.7)'
+                        })
+                        
+                        try {
+                            // 执行清除操作
+                            const results = await this.faceDB.clearAllCache()
+                            
+                            loading.close()
+                            
+                            // 重置本地状态
+                            this.faceLibrary = []
+                            this.matchedFaces = []
+                            this.faceMatcher = null
+                            
+                            // 生成清除结果报告
+                            let report = '🧹 缓存清除完成！\n\n'
+                            report += `✅ IndexedDB: ${results.indexedDB ? '已清除' : '清除失败'}\n`
+                            report += `✅ LocalStorage: ${results.localStorage ? '已清除' : '清除失败'}\n`
+                            report += `✅ SessionStorage: ${results.sessionStorage ? '已清除' : '清除失败'}\n`
+                            report += `✅ Cache API: ${results.cacheAPI ? '已清除' : '清除失败'}\n`
+                            report += `✅ Service Worker: ${results.serviceWorker ? '已清除' : '清除失败'}\n`
+                            report += `✅ Cookies: ${results.cookies ? '已清除' : '清除失败'}\n`
+                            
+                            if (results.errors.length > 0) {
+                                report += `\n⚠️ 部分清除失败：\n${results.errors.slice(0, 3).join('\n')}`
+                            }
+                            
+                            report += '\n\n💡 建议刷新页面以确保完全生效。'
+                            
+                            await this.$alert(report, '清除结果', {
+                                type: results.errors.length === 0 ? 'success' : 'warning',
+                                dangerouslyUseHTMLString: false
+                            })
+                            
+                            // 询问是否刷新页面
+                            try {
+                                await this.$confirm(
+                                    '清除完成！是否立即刷新页面？',
+                                    '刷新页面',
+                                    { type: 'info' }
+                                )
+                                window.location.reload()
+                            } catch {
+                                // 用户选择不刷新
+                            }
+                            
+                        } catch (error) {
+                            loading.close()
+                            console.error('清除缓存失败:', error)
+                            this.$message.error('清除缓存失败: ' + error.message)
+                        }
+                        
+                    } catch (error) {
+                        if (error !== 'cancel') {
+                            console.error('清除操作失败:', error)
+                            this.$message.error('操作失败')
+                        }
+                    }
+                },
+                
+                updateFPS() {
+                    this.fpsCounter++
+                    const now = Date.now()
+                    
+                    if (now - this.lastFpsUpdate >= 1000) {
+                        this.fps = this.fpsCounter
+                        this.fpsCounter = 0
+                        this.lastFpsUpdate = now
+                    }
+                },
+                
+                cleanup() {
+                    if (this.stream) {
+                        this.stream.getTracks().forEach(track => track.stop())
+                        this.stream = null
+                    }
+                    
+                    this.stopDetection()
+                    
+                    if (this.$refs.video) {
+                        this.$refs.video.srcObject = null
+                    }
+                },
+                
+                // 在页面卸载时关闭数据库连接
+                beforeDestroy() {
+                    this.cleanup()
+                    if (this.faceDB) {
+                        this.faceDB.close()
+                    }
+                }
+            }
+        })
+    </script>
+</body>
+</html> 

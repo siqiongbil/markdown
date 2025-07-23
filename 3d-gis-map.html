@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D GIS 地图系统</title>
+    
+    <!-- EasyUI CSS -->
+    <link rel="stylesheet" type="text/css" href="https://www.jeasyui.com/easyui/themes/default/easyui.css">
+    <link rel="stylesheet" type="text/css" href="https://www.jeasyui.com/easyui/themes/icon.css">
+    
+    <!-- Cesium CSS -->
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.98/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    
+    <!-- jQuery -->
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- EasyUI JS -->
+    <script type="text/javascript" src="https://www.jeasyui.com/easyui/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="https://www.jeasyui.com/easyui/locale/easyui-lang-zh_CN.js"></script>
+    
+    <!-- Cesium JS -->
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.98/Build/Cesium/Cesium.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+        
+        #mapContainer {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #cesiumContainer {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .toolbar-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(42, 42, 42, 0.9);
+            border-radius: 5px;
+            padding: 10px;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 300px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .building-label {
+            background: rgba(0, 123, 255, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .road-label {
+            background: rgba(40, 167, 69, 0.8);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+        
+        .marker-info {
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            border-radius: 3px;
+        }
+        
+        .route-info {
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-left: 4px solid #28a745;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div id="mapContainer">
+        <!-- 3D 地图容器 -->
+        <div id="cesiumContainer"></div>
+        
+        <!-- 工具栏 -->
+        <div class="toolbar-panel">
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="addMarker()">添加标点</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-edit'" onclick="drawRoute()">绘制路线</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-search'" onclick="toggleBuildings()">建筑显示</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-tip'" onclick="toggleRoads()">道路显示</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" onclick="clearAll()">清除所有</a>
+        </div>
+        
+        <!-- 信息面板 -->
+        <div class="info-panel">
+            <h3 style="margin-top: 0;">地图信息</h3>
+            <div id="infoContent">
+                <p>欢迎使用 3D GIS 地图系统</p>
+                <p>功能说明：</p>
+                <ul>
+                    <li>点击"添加标点"后在地图上点击添加标记</li>
+                    <li>点击"绘制路线"后在地图上点击多个点绘制路径</li>
+                    <li>切换建筑和道路名称显示</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 标点信息对话框 -->
+    <div id="markerDialog" class="easyui-dialog" title="标点信息" style="width:400px;height:300px;" 
+         data-options="iconCls:'icon-add',resizable:true,modal:true,closed:true">
+        <form id="markerForm" style="padding:20px;">
+            <div style="margin-bottom:10px">
+                <label>标点名称:</label>
+                <input class="easyui-textbox" name="name" style="width:100%" data-options="required:true">
+            </div>
+            <div style="margin-bottom:10px">
+                <label>描述信息:</label>
+                <input class="easyui-textbox" name="description" style="width:100%" data-options="multiline:true,height:60">
+            </div>
+            <div style="margin-bottom:10px">
+                <label>标记类型:</label>
+                <select class="easyui-combobox" name="type" style="width:100%">
+                    <option value="building">建筑</option>
+                    <option value="landmark">地标</option>
+                    <option value="facility">设施</option>
+                    <option value="custom">自定义</option>
+                </select>
+            </div>
+            <div style="text-align:center;padding:10px">
+                <a href="#" class="easyui-linkbutton" onclick="saveMarker()">保存</a>
+                <a href="#" class="easyui-linkbutton" onclick="$('#markerDialog').dialog('close')">取消</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // 全局变量
+        let viewer;
+        let isAddingMarker = false;
+        let isDrawingRoute = false;
+        let currentRoute = [];
+        let markers = [];
+        let routes = [];
+        let buildingsVisible = true;
+        let roadsVisible = true;
+        let pendingMarkerPosition = null;
+
+        // 初始化 Cesium
+        Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYWE1OWUxNy1mMWZiLTQzYjYtYTQ0OS1kMWFjYmFkNjc5YzciLCJpZCI6NTc3MzMsImlhdCI6MTYyNzg0NTE4Mn0.XcKpgANiY19MC4bdFUXMVEBToBmqS8kuYpUlxJHYZxk';
+
+        $(document).ready(function() {
+            initializeMap();
+            setupEventHandlers();
+        });
+
+        function initializeMap() {
+            viewer = new Cesium.Viewer('cesiumContainer', {
+                terrainProvider: Cesium.createWorldTerrain(),
+                imageryProvider: new Cesium.BingMapsImageryProvider({
+                    url: 'https://dev.virtualearth.net',
+                    key: 'AuhiCJHlGzhg93IqUH_oCpl_-ZUrIE6SPftlyGYUvr9Amx5nzA-WqGcPquyFZl4L',
+                    mapStyle: Cesium.BingMapsStyle.AERIAL_WITH_LABELS_ON_DEMAND
+                }),
+                baseLayerPicker: false,
+                geocoder: false,
+                homeButton: false,
+                sceneModePicker: false,
+                navigationHelpButton: false,
+                animation: false,
+                timeline: false,
+                fullscreenButton: false,
+                vrButton: false
+            });
+
+            // 设置初始视角（以北京为例）
+            viewer.camera.setView({
+                destination: Cesium.Cartesian3.fromDegrees(116.397, 39.909, 1000),
+                orientation: {
+                    heading: Cesium.Math.toRadians(0),
+                    pitch: Cesium.Math.toRadians(-45),
+                    roll: 0.0
+                }
+            });
+
+            // 启用 3D 建筑
+            viewer.scene.primitives.add(Cesium.createOsmBuildings());
+
+            // 添加示例建筑和道路标签
+            addSampleBuildings();
+            addSampleRoads();
+        }
+
+        function setupEventHandlers() {
+            // 地图点击事件
+            viewer.cesiumWidget.canvas.addEventListener('click', function(e) {
+                if (isAddingMarker) {
+                    handleMarkerClick(e);
+                } else if (isDrawingRoute) {
+                    handleRouteClick(e);
+                }
+            });
+
+            // 禁用默认的双击行为
+            viewer.cesiumWidget.canvas.addEventListener('dblclick', function(e) {
+                e.stopPropagation();
+                if (isDrawingRoute) {
+                    finishRoute();
+                }
+            });
+        }
+
+        function addMarker() {
+            isAddingMarker = true;
+            isDrawingRoute = false;
+            updateInfoPanel('点击地图添加标记点...');
+            viewer.canvas.style.cursor = 'crosshair';
+        }
+
+        function drawRoute() {
+            isDrawingRoute = true;
+            isAddingMarker = false;
+            currentRoute = [];
+            updateInfoPanel('点击地图绘制路线，双击结束...');
+            viewer.canvas.style.cursor = 'crosshair';
+        }
+
+        function handleMarkerClick(click) {
+            const pickedPosition = viewer.camera.pickEllipsoid(new Cesium.Cartesian2(click.offsetX, click.offsetY), viewer.scene.globe.ellipsoid);
+            if (pickedPosition) {
+                pendingMarkerPosition = pickedPosition;
+                $('#markerDialog').dialog('open');
+                isAddingMarker = false;
+                viewer.canvas.style.cursor = 'default';
+            }
+        }
+
+        function handleRouteClick(click) {
+            const pickedPosition = viewer.camera.pickEllipsoid(new Cesium.Cartesian2(click.offsetX, click.offsetY), viewer.scene.globe.ellipsoid);
+            if (pickedPosition) {
+                currentRoute.push(pickedPosition);
+                
+                // 添加路径点标记
+                viewer.entities.add({
+                    position: pickedPosition,
+                    point: {
+                        pixelSize: 8,
+                        color: Cesium.Color.YELLOW,
+                        outlineColor: Cesium.Color.BLACK,
+                        outlineWidth: 2
+                    }
+                });
+
+                updateInfoPanel(`路线点 ${currentRoute.length} 已添加，双击结束绘制`);
+            }
+        }
+
+        function finishRoute() {
+            if (currentRoute.length >= 2) {
+                const routeEntity = viewer.entities.add({
+                    polyline: {
+                        positions: currentRoute,
+                        width: 5,
+                        material: Cesium.Color.CYAN,
+                        clampToGround: true
+                    }
+                });
+
+                routes.push({
+                    entity: routeEntity,
+                    points: currentRoute.length,
+                    length: calculateRouteLength(currentRoute)
+                });
+
+                updateRoutesInfo();
+            }
+
+            isDrawingRoute = false;
+            currentRoute = [];
+            viewer.canvas.style.cursor = 'default';
+            updateInfoPanel('路线绘制完成');
+        }
+
+        function saveMarker() {
+            if (!pendingMarkerPosition) return;
+
+            const formData = $('#markerForm').serializeArray();
+            const markerData = {};
+            formData.forEach(item => {
+                markerData[item.name] = item.value;
+            });
+
+            // 根据类型选择不同的图标颜色
+            let color = Cesium.Color.RED;
+            switch (markerData.type) {
+                case 'building': color = Cesium.Color.BLUE; break;
+                case 'landmark': color = Cesium.Color.GREEN; break;
+                case 'facility': color = Cesium.Color.ORANGE; break;
+                default: color = Cesium.Color.RED;
+            }
+
+            const markerEntity = viewer.entities.add({
+                position: pendingMarkerPosition,
+                billboard: {
+                    image: 'data:image/svg+xml;base64,' + btoa(`
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+                            <circle cx="16" cy="16" r="12" fill="${color.toCssColorString()}" stroke="white" stroke-width="2"/>
+                            <text x="16" y="20" text-anchor="middle" fill="white" font-size="14" font-weight="bold">●</text>
+                        </svg>
+                    `),
+                    verticalOrigin: Cesium.VerticalOrigin.BOTTOM
+                },
+                label: {
+                    text: markerData.name,
+                    font: '14pt sans-serif',
+                    fillColor: Cesium.Color.WHITE,
+                    outlineColor: Cesium.Color.BLACK,
+                    outlineWidth: 2,
+                    style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                    pixelOffset: new Cesium.Cartesian2(0, -50),
+                    scaleByDistance: new Cesium.NearFarScalar(1.5e2, 1.0, 1.5e7, 0.5)
+                }
+            });
+
+            markers.push({
+                entity: markerEntity,
+                data: markerData,
+                position: pendingMarkerPosition
+            });
+
+            $('#markerDialog').dialog('close');
+            $('#markerForm')[0].reset();
+            pendingMarkerPosition = null;
+            
+            updateMarkersInfo();
+            updateInfoPanel('标记添加成功');
+        }
+
+        function toggleBuildings() {
+            buildingsVisible = !buildingsVisible;
+            viewer.scene.primitives._primitives.forEach(primitive => {
+                if (primitive instanceof Cesium.Cesium3DTileset) {
+                    primitive.show = buildingsVisible;
+                }
+            });
+            
+            // 切换建筑标签显示
+            viewer.entities.values.forEach(entity => {
+                if (entity.label && entity.label.text && entity.label.text.getValue().includes('大厦')) {
+                    entity.show = buildingsVisible;
+                }
+            });
+            
+            updateInfoPanel(`建筑显示: ${buildingsVisible ? '开启' : '关闭'}`);
+        }
+
+        function toggleRoads() {
+            roadsVisible = !roadsVisible;
+            
+            // 切换道路标签显示
+            viewer.entities.values.forEach(entity => {
+                if (entity.label && entity.label.text && (entity.label.text.getValue().includes('路') || entity.label.text.getValue().includes('街'))) {
+                    entity.show = roadsVisible;
+                }
+            });
+            
+            updateInfoPanel(`道路显示: ${roadsVisible ? '开启' : '关闭'}`);
+        }
+
+        function clearAll() {
+            $.messager.confirm('确认', '确定要清除所有标记和路线吗？', function(r) {
+                if (r) {
+                    // 清除用户添加的标记和路线
+                    markers.forEach(marker => viewer.entities.remove(marker.entity));
+                    routes.forEach(route => viewer.entities.remove(route.entity));
+                    
+                    // 清除路线点
+                    viewer.entities.values.forEach(entity => {
+                        if (entity.point && entity.point.color && entity.point.color.getValue().equals(Cesium.Color.YELLOW)) {
+                            viewer.entities.remove(entity);
+                        }
+                    });
+                    
+                    markers = [];
+                    routes = [];
+                    currentRoute = [];
+                    
+                    updateInfoPanel('所有数据已清除');
+                }
+            });
+        }
+
+        function addSampleBuildings() {
+            // 添加示例建筑标签
+            const buildings = [
+                { name: '国贸大厦', position: [116.458, 39.918] },
+                { name: '中央电视台', position: [116.325, 39.920] },
+                { name: '鸟巢体育场', position: [116.388, 39.993] },
+                { name: '水立方', position: [116.385, 39.995] }
+            ];
+
+            buildings.forEach(building => {
+                viewer.entities.add({
+                    position: Cesium.Cartesian3.fromDegrees(building.position[0], building.position[1], 100),
+                    label: {
+                        text: building.name,
+                        font: '12pt sans-serif',
+                        fillColor: Cesium.Color.WHITE,
+                        outlineColor: Cesium.Color.BLUE,
+                        outlineWidth: 2,
+                        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                        backgroundColor: Cesium.Color.BLUE.withAlpha(0.8),
+                        backgroundPadding: new Cesium.Cartesian2(7, 5),
+                        scaleByDistance: new Cesium.NearFarScalar(1.5e2, 1.0, 1.5e7, 0.5)
+                    }
+                });
+            });
+        }
+
+        function addSampleRoads() {
+            // 添加示例道路标签
+            const roads = [
+                { name: '长安街', position: [116.397, 39.906] },
+                { name: '王府井大街', position: [116.414, 39.909] },
+                { name: '西单北大街', position: [116.380, 39.909] },
+                { name: '东长安街', position: [116.420, 39.906] }
+            ];
+
+            roads.forEach(road => {
+                viewer.entities.add({
+                    position: Cesium.Cartesian3.fromDegrees(road.position[0], road.position[1], 50),
+                    label: {
+                        text: road.name,
+                        font: '10pt sans-serif',
+                        fillColor: Cesium.Color.WHITE,
+                        outlineColor: Cesium.Color.GREEN,
+                        outlineWidth: 1,
+                        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                        backgroundColor: Cesium.Color.GREEN.withAlpha(0.8),
+                        backgroundPadding: new Cesium.Cartesian2(5, 3),
+                        scaleByDistance: new Cesium.NearFarScalar(1.5e2, 1.0, 1.5e7, 0.3)
+                    }
+                });
+            });
+        }
+
+        function calculateRouteLength(positions) {
+            let totalLength = 0;
+            for (let i = 1; i < positions.length; i++) {
+                const distance = Cesium.Cartesian3.distance(positions[i-1], positions[i]);
+                totalLength += distance;
+            }
+            return (totalLength / 1000).toFixed(2); // 转换为公里
+        }
+
+        function updateInfoPanel(message) {
+            let content = `<p><strong>状态:</strong> ${message}</p>`;
+            content += `<p><strong>标记数量:</strong> ${markers.length}</p>`;
+            content += `<p><strong>路线数量:</strong> ${routes.length}</p>`;
+            content += `<p><strong>建筑显示:</strong> ${buildingsVisible ? '开启' : '关闭'}</p>`;
+            content += `<p><strong>道路显示:</strong> ${roadsVisible ? '开启' : '关闭'}</p>`;
+            
+            if (markers.length > 0) {
+                content += '<h4>标记列表:</h4>';
+                markers.forEach((marker, index) => {
+                    content += `<div class="marker-info">
+                        <strong>${marker.data.name}</strong><br>
+                        类型: ${marker.data.type}<br>
+                        描述: ${marker.data.description || '无'}
+                    </div>`;
+                });
+            }
+            
+            if (routes.length > 0) {
+                content += '<h4>路线列表:</h4>';
+                routes.forEach((route, index) => {
+                    content += `<div class="route-info">
+                        <strong>路线 ${index + 1}</strong><br>
+                        点数: ${route.points}<br>
+                        长度: ${route.length} 公里
+                    </div>`;
+                });
+            }
+            
+            $('#infoContent').html(content);
+        }
+
+        function updateMarkersInfo() {
+            updateInfoPanel('标记信息已更新');
+        }
+
+        function updateRoutesInfo() {
+            updateInfoPanel('路线信息已更新');
+        }
+
+        // 页面加载完成后初始化
+        $(window).resize(function() {
+            if (viewer) {
+                viewer.resize();
+            }
+        });
+    </script>
+</body>
+</html> 
