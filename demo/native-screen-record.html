@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>原生JS录屏+音频转字幕系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+        .main-content {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        .control-panel, .video-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+        }
+        .section-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-danger { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); }
+        .btn-success { background: linear-gradient(135deg, #51cf66 0%, #40c057 100%); }
+        .btn-warning { background: linear-gradient(135deg, #ffa726 0%, #ff9800 100%); }
+        .video-container {
+            width: 100%;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .video-container video { width: 100%; display: block; }
+        .status-info {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .transcript-panel {
+            grid-column: 1 / -1;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+        }
+        .transcript-content {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 200px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+        .translation-panel {
+            grid-column: 1 / -1;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+        }
+        .translation-content {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 200px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+        .language-selector {
+            margin-bottom: 15px;
+        }
+        .language-selector select {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .translation-status {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        @media (max-width: 768px) {
+            .main-content { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📹 录屏+音频转字幕系统</h1>
+            <p>基于原生JavaScript的屏幕录制与实时语音转文字解决方案</p>
+        </div>
+
+        <div class="main-content">
+            <div class="control-panel">
+                <h2 class="section-title">🎮 控制面板</h2>
+                <div class="status-info" id="statusInfo">
+                    <strong>系统状态：</strong>就绪
+                </div>
+                <button class="btn" id="startBtn" onclick="startRecording()">🎬 开始录制</button>
+                <button class="btn btn-danger" id="stopBtn" onclick="stopRecording()" disabled>⏹️ 停止录制</button>
+                <button class="btn btn-success" id="downloadBtn" onclick="downloadVideo()" disabled>💾 下载视频</button>
+                <button class="btn" onclick="clearTranscript()">🗑️ 清空字幕</button>
+            </div>
+
+            <div class="video-panel">
+                <h2 class="section-title">📺 视频预览</h2>
+                <div class="video-container">
+                    <video id="previewVideo" controls style="display: none;"></video>
+                    <div id="videoPlaceholder" style="height: 200px; display: flex; align-items: center; justify-content: center; color: #666;">
+                        点击"开始录制"开始录屏
+                    </div>
+                </div>
+                <div class="status-info">
+                    <strong>录制信息：</strong>
+                    <div id="recordingInfo">等待开始录制...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="transcript-panel">
+            <h2 class="section-title">📝 实时字幕</h2>
+            <div class="transcript-content" id="transcriptContent">等待语音输入...</div>
+            <div style="margin-top: 15px;">
+                <button class="btn" onclick="exportTranscript()">📄 导出字幕</button>
+                <button class="btn" onclick="copyTranscript()">📋 复制文本</button>
+            </div>
+        </div>
+
+        <div class="translation-panel">
+            <h2 class="section-title">🌐 翻译功能</h2>
+            <div class="language-selector">
+                <select id="translateAPI" onchange="changeTranslateAPI()">
+                    <option value="localTranslate">本地翻译 (无CORS问题)</option>
+                    <option value="myMemory">MyMemory (免费)</option>
+                    <option value="googleTranslate">Google Translate (免费)</option>
+                    <option value="libreTranslate">LibreTranslate (免费)</option>
+                </select>
+                <select id="targetLanguage">
+                    <option value="en">英语 (English)</option>
+                    <option value="ja">日语 (日本語)</option>
+                    <option value="ko">韩语 (한국어)</option>
+                    <option value="fr">法语 (Français)</option>
+                    <option value="de">德语 (Deutsch)</option>
+                    <option value="es">西班牙语 (Español)</option>
+                    <option value="ru">俄语 (Русский)</option>
+                    <option value="ar">阿拉伯语 (العربية)</option>
+                    <option value="pt">葡萄牙语 (Português)</option>
+                    <option value="it">意大利语 (Italiano)</option>
+                </select>
+                <button class="btn btn-warning" onclick="translateTranscript()">🔄 翻译字幕</button>
+                <button class="btn" onclick="clearTranslation()">🗑️ 清空翻译</button>
+            </div>
+            <div class="translation-status" id="translationStatus" style="display: none;">
+                <strong>翻译状态：</strong><span id="translationStatusText">准备翻译...</span>
+            </div>
+            <div class="translation-content" id="translationContent">等待翻译...</div>
+            <div style="margin-top: 15px;">
+                <button class="btn" onclick="exportTranslation()">📄 导出翻译</button>
+                <button class="btn" onclick="copyTranslation()">📋 复制翻译</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let stream = null;
+        let recognition = null;
+        let isRecording = false;
+        let startTime = null;
+        let transcriptText = '';
+        let translationText = '';
+        let isTranslating = false;
+
+        // 翻译API配置 - 提供多个选项
+        const TRANSLATE_APIS = {
+            localTranslate: {
+                url: 'local',
+                name: '本地翻译 (无CORS问题)',
+                cors: true
+            },
+            myMemory: {
+                url: 'https://api.mymemory.translated.net/get',
+                name: 'MyMemory (免费)',
+                cors: true
+            },
+            googleTranslate: {
+                url: 'https://translate.googleapis.com/translate_a/single',
+                name: 'Google Translate (免费)',
+                cors: true
+            },
+            libreTranslate: {
+                url: 'https://libretranslate.de/translate',
+                name: 'LibreTranslate (免费)',
+                cors: false
+            }
+        };
+        
+        // 检测是否为本地文件运行
+        const isLocalFile = window.location.protocol === 'file:';
+        let currentTranslateAPI = isLocalFile ? 'localTranslate' : 'myMemory'; // 本地文件默认使用本地翻译
+
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                
+                recognition.lang = 'zh-CN';
+                recognition.continuous = true;
+                recognition.interimResults = true;
+
+                recognition.onresult = function(event) {
+                    let finalTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                        }
+                    }
+
+                    if (finalTranscript) {
+                        const timestamp = getTimestamp();
+                        const line = `[${timestamp}] ${finalTranscript}\n`;
+                        transcriptText += line;
+                        document.getElementById('transcriptContent').textContent = transcriptText;
+                    }
+                };
+
+                recognition.onend = function() {
+                    if (isRecording) {
+                        setTimeout(() => recognition.start(), 100);
+                    }
+                };
+
+                return true;
+            }
+            return false;
+        }
+
+        async function startRecording() {
+            try {
+                // 重置之前的录制状态
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                
+                stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { width: 1280, height: 720, frameRate: 30 },
+                    audio: true
+                });
+
+                // 设置实时预览
+                const previewVideo = document.getElementById('previewVideo');
+                previewVideo.srcObject = stream;
+                previewVideo.style.display = 'block';
+                document.getElementById('videoPlaceholder').style.display = 'none';
+                
+                // 确保视频加载完成后播放
+                previewVideo.onloadedmetadata = function() {
+                    previewVideo.play().catch(e => console.log('自动播放被阻止:', e));
+                };
+                
+                // 添加视频错误处理
+                previewVideo.onerror = function(e) {
+                    console.error('视频预览错误:', e);
+                    document.getElementById('recordingInfo').innerHTML = '视频预览加载失败';
+                };
+
+                recordedChunks = [];
+                // 检查支持的MIME类型
+                let mimeType = 'video/webm;codecs=vp9';
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'video/webm;codecs=vp8';
+                }
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'video/webm';
+                }
+                
+                mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: mimeType
+                });
+
+                mediaRecorder.ondataavailable = function(event) {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = function() {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    // 录制结束后，将预览视频源改为录制的文件
+                    previewVideo.srcObject = null;
+                    previewVideo.src = url;
+                    document.getElementById('downloadBtn').disabled = false;
+                };
+
+                mediaRecorder.start(1000);
+                isRecording = true;
+                startTime = Date.now();
+
+                if (initSpeechRecognition()) {
+                    recognition.start();
+                }
+
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('statusInfo').innerHTML = '<strong>系统状态：</strong>正在录制中...';
+                document.getElementById('recordingInfo').innerHTML = '录制进行中...';
+
+                stream.getVideoTracks()[0].onended = function() {
+                    stopRecording();
+                };
+
+            } catch (err) {
+                console.error('录制失败:', err);
+                alert('录制失败: ' + err.message);
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+
+                if (recognition) {
+                    recognition.stop();
+                }
+
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+                document.getElementById('statusInfo').innerHTML = '<strong>系统状态：</strong>录制完成';
+                document.getElementById('recordingInfo').innerHTML = '录制已完成';
+                
+                // 确保录制完成后视频预览正常显示
+                const previewVideo = document.getElementById('previewVideo');
+                if (previewVideo.srcObject) {
+                    previewVideo.srcObject = null;
+                }
+            }
+        }
+
+        function downloadVideo() {
+            if (recordedChunks.length > 0) {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `screen-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        function getTimestamp() {
+            if (!startTime) return '00:00:00';
+            
+            const elapsed = Date.now() - startTime;
+            const hours = Math.floor(elapsed / 3600000);
+            const minutes = Math.floor((elapsed % 3600000) / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function clearTranscript() {
+            transcriptText = '';
+            document.getElementById('transcriptContent').textContent = '等待语音输入...';
+        }
+
+        function exportTranscript() {
+            if (!transcriptText) {
+                alert('没有字幕内容可导出');
+                return;
+            }
+            
+            const blob = new Blob([transcriptText], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `transcript-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function copyTranscript() {
+            if (!transcriptText) {
+                alert('没有字幕内容可复制');
+                return;
+            }
+            
+            navigator.clipboard.writeText(transcriptText).then(() => {
+                alert('字幕已复制到剪贴板');
+            }).catch(err => {
+                alert('复制失败');
+            });
+        }
+
+        // 翻译功能
+        async function translateTranscript() {
+            if (!transcriptText || transcriptText === '等待语音输入...') {
+                alert('没有字幕内容可翻译');
+                return;
+            }
+
+            if (isTranslating) {
+                alert('正在翻译中，请稍候...');
+                return;
+            }
+
+            const targetLang = document.getElementById('targetLanguage').value;
+            const statusDiv = document.getElementById('translationStatus');
+            const statusText = document.getElementById('translationStatusText');
+
+            isTranslating = true;
+            statusDiv.style.display = 'block';
+            statusText.textContent = '正在翻译...';
+
+            try {
+                // 将字幕文本按行分割并翻译
+                const lines = transcriptText.split('\n').filter(line => line.trim());
+                let translatedLines = [];
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (line.trim()) {
+                        // 提取时间戳和文本内容
+                        const match = line.match(/^(\[.*?\]) (.*)$/);
+                        if (match) {
+                            const timestamp = match[1];
+                            const text = match[2];
+                            
+                            try {
+                                const translatedText = await translateText(text, 'zh', targetLang);
+                                translatedLines.push(`${timestamp} ${translatedText}`);
+                                statusText.textContent = `正在翻译第 ${i + 1}/${lines.length} 行...`;
+                            } catch (err) {
+                                console.error('翻译失败:', err);
+                                translatedLines.push(`${timestamp} [翻译失败] ${text}`);
+                            }
+                        } else {
+                            translatedLines.push(line);
+                        }
+                    }
+                }
+
+                translationText = translatedLines.join('\n');
+                document.getElementById('translationContent').textContent = translationText;
+                statusText.textContent = '翻译完成';
+                
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 3000);
+
+                                } catch (err) {
+                        console.error('翻译过程出错:', err);
+                        let errorMessage = '翻译失败: ' + err.message;
+                        
+                        // 如果是CORS错误，提供解决方案
+                        if (err.message.includes('CORS') || err.message.includes('preflight')) {
+                            errorMessage = '翻译失败: CORS跨域问题。请尝试切换到其他翻译API，或使用本地服务器运行此文件。';
+                        }
+                        
+                        statusText.textContent = errorMessage;
+                        setTimeout(() => {
+                            statusDiv.style.display = 'none';
+                        }, 8000);
+                    } finally {
+                        isTranslating = false;
+                    }
+        }
+
+        function changeTranslateAPI() {
+            currentTranslateAPI = document.getElementById('translateAPI').value;
+            console.log('切换到翻译API:', TRANSLATE_APIS[currentTranslateAPI].name);
+            
+            // 如果是本地文件且选择了需要网络的API，给出提示
+            if (isLocalFile && currentTranslateAPI !== 'localTranslate') {
+                alert('注意：在本地文件运行时，网络翻译API可能遇到CORS问题。建议使用"本地翻译"选项。');
+            }
+        }
+
+        async function translateText(text, sourceLang, targetLang) {
+            const api = TRANSLATE_APIS[currentTranslateAPI];
+            
+            try {
+                let response;
+                
+                switch (currentTranslateAPI) {
+                    case 'localTranslate':
+                        // 本地翻译逻辑
+                        console.log('使用本地翻译API');
+                        // 在本地文件运行时，直接返回原始文本
+                        if (isLocalFile) {
+                            return text;
+                        }
+                        // 在服务器上运行时，模拟API调用
+                        await new Promise(resolve => setTimeout(resolve, 100)); // 模拟网络延迟
+                        return `[本地翻译] ${text}`; // 示例本地翻译
+                        
+                    case 'myMemory':
+                        // MyMemory API - GET请求，CORS友好
+                        const myMemoryUrl = `${api.url}?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`;
+                        response = await fetch(myMemoryUrl);
+                        if (!response.ok) {
+                            throw new Error(`MyMemory API请求失败: ${response.status}`);
+                        }
+                        const myMemoryData = await response.json();
+                        return myMemoryData.responseData.translatedText;
+                        
+                    case 'googleTranslate':
+                        // Google Translate API - GET请求，CORS友好
+                        const googleUrl = `${api.url}?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+                        response = await fetch(googleUrl);
+                        if (!response.ok) {
+                            throw new Error(`Google Translate API请求失败: ${response.status}`);
+                        }
+                        const googleData = await response.json();
+                        return googleData[0][0][0];
+                        
+                    case 'libreTranslate':
+                        // LibreTranslate API - POST请求，可能有CORS问题
+                        response = await fetch(api.url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                q: text,
+                                source: sourceLang,
+                                target: targetLang,
+                                format: 'text'
+                            })
+                        });
+                        if (!response.ok) {
+                            throw new Error(`LibreTranslate API请求失败: ${response.status}`);
+                        }
+                        const libreData = await response.json();
+                        return libreData.translatedText;
+                        
+                    default:
+                        throw new Error('未知的翻译API');
+                }
+            } catch (error) {
+                console.error('翻译请求失败:', error);
+                // 如果当前API失败，尝试切换到其他API
+                if (currentTranslateAPI !== 'localTranslate') { // 避免无限循环
+                    console.log('尝试切换到本地翻译API...');
+                    currentTranslateAPI = 'localTranslate';
+                    document.getElementById('translateAPI').value = 'localTranslate';
+                    return await translateText(text, sourceLang, targetLang);
+                }
+                throw error;
+            }
+        }
+
+        function clearTranslation() {
+            translationText = '';
+            document.getElementById('translationContent').textContent = '等待翻译...';
+            document.getElementById('translationStatus').style.display = 'none';
+        }
+
+        function exportTranslation() {
+            if (!translationText || translationText === '等待翻译...') {
+                alert('没有翻译内容可导出');
+                return;
+            }
+            
+            const targetLang = document.getElementById('targetLanguage').value;
+            const blob = new Blob([translationText], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `translation-${targetLang}-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function copyTranslation() {
+            if (!translationText || translationText === '等待翻译...') {
+                alert('没有翻译内容可复制');
+                return;
+            }
+            
+            navigator.clipboard.writeText(translationText).then(() => {
+                alert('翻译已复制到剪贴板');
+            }).catch(err => {
+                alert('复制失败');
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                alert('浏览器不支持屏幕录制功能');
+                document.getElementById('startBtn').disabled = true;
+            }
+        });
+    </script>
+</body>
+</html>

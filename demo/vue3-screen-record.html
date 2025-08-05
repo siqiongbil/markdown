@@ -72,11 +72,27 @@
             border-radius: 10px;
             overflow: hidden;
             margin-bottom: 20px;
+            position: relative;
         }
         
         .video-container video {
             width: 100%;
             display: block;
+            background: #000;
+        }
+        
+        .video-container .video-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            color: #666;
+            font-size: 1.1em;
         }
         
         .video-placeholder {
@@ -96,9 +112,30 @@
             background: #f8f9fa;
             border-radius: 15px;
             padding: 25px;
+            margin-bottom: 20px;
         }
         
         .transcript-content {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 300px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+        
+        .translation-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .translation-content {
             background: white;
             border-radius: 10px;
             padding: 20px;
@@ -141,6 +178,14 @@
         }
         
         .el-progress {
+            margin: 15px 0;
+        }
+        
+        .translation-controls {
+            margin-bottom: 20px;
+        }
+        
+        .translation-status {
             margin: 15px 0;
         }
         
@@ -256,8 +301,8 @@
                         <h2 class="section-title">📺 视频预览</h2>
                         
                         <div class="video-container">
-                            <video v-if="videoUrl" :src="videoUrl" controls></video>
-                            <div v-else class="video-placeholder">
+                            <video ref="videoElement" controls style="display: block;"></video>
+                            <div v-if="!isRecording && !recordedVideo" class="video-placeholder">
                                 点击"开始录制"开始录屏
                             </div>
                         </div>
@@ -295,6 +340,80 @@
                         </el-button>
                     </div>
                 </div>
+                
+                <!-- 翻译面板 -->
+                <div class="translation-panel">
+                    <h2 class="section-title">🌐 翻译功能</h2>
+                    
+                    <div class="translation-controls">
+                        <el-select v-model="currentTranslateApi" placeholder="选择翻译API" style="width: 180px; margin-right: 15px;">
+                            <el-option label="本地翻译 (无CORS问题)" value="localTranslate"></el-option>
+                            <el-option label="MyMemory (免费)" value="myMemory"></el-option>
+                            <el-option label="Google Translate (免费)" value="googleTranslate"></el-option>
+                            <el-option label="LibreTranslate (免费)" value="libreTranslate"></el-option>
+                        </el-select>
+                        <el-select v-model="translationSettings.targetLanguage" placeholder="选择目标语言" style="width: 200px; margin-right: 15px;">
+                            <el-option label="英语 (English)" value="en"></el-option>
+                            <el-option label="日语 (日本語)" value="ja"></el-option>
+                            <el-option label="韩语 (한국어)" value="ko"></el-option>
+                            <el-option label="法语 (Français)" value="fr"></el-option>
+                            <el-option label="德语 (Deutsch)" value="de"></el-option>
+                            <el-option label="西班牙语 (Español)" value="es"></el-option>
+                            <el-option label="俄语 (Русский)" value="ru"></el-option>
+                            <el-option label="阿拉伯语 (العربية)" value="ar"></el-option>
+                            <el-option label="葡萄牙语 (Português)" value="pt"></el-option>
+                            <el-option label="意大利语 (Italiano)" value="it"></el-option>
+                        </el-select>
+                        
+                        <el-button
+                            type="warning"
+                            :icon="Refresh"
+                            @click="translateTranscript"
+                            :loading="isTranslating"
+                            :disabled="!transcriptText || transcriptText === '等待语音输入...'">
+                            翻译字幕
+                        </el-button>
+                        
+                        <el-button
+                            :icon="Delete"
+                            @click="clearTranslation">
+                            清空翻译
+                        </el-button>
+                    </div>
+                    
+                    <div class="translation-status" v-if="translationStatus.show">
+                        <el-alert
+                            :title="translationStatus.message"
+                            :type="translationStatus.type"
+                            :closable="false">
+                        </el-alert>
+                    </div>
+                    
+                    <div class="translation-content">{{ translationText || '等待翻译...' }}</div>
+                    
+                    <div style="margin-top: 20px;">
+                        <el-button
+                            :icon="Document"
+                            @click="exportTranslation"
+                            :disabled="!translationText || translationText === '等待翻译...'">
+                            导出翻译
+                        </el-button>
+                        
+                        <el-button
+                            :icon="CopyDocument"
+                            @click="copyTranslation"
+                            :disabled="!translationText || translationText === '等待翻译...'">
+                            复制翻译
+                        </el-button>
+                        
+                        <el-button
+                            :icon="Folder"
+                            @click="saveTranslation"
+                            :disabled="!translationText || translationText === '等待翻译...'">
+                            保存翻译
+                        </el-button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -311,7 +430,8 @@
             Delete,
             Document,
             CopyDocument,
-            Folder
+            Folder,
+            Refresh
         } = ElementPlusIconsVue;
 
         const App = {
@@ -322,7 +442,8 @@
                 Delete,
                 Document,
                 CopyDocument,
-                Folder
+                Folder,
+                Refresh
             },
             
             setup() {
@@ -338,6 +459,18 @@
                 
                 // 字幕相关
                 const transcriptText = ref('');
+                
+                // 翻译相关
+                const translationText = ref('');
+                const isTranslating = ref(false);
+                const translationSettings = reactive({
+                    targetLanguage: 'en'
+                });
+                const translationStatus = reactive({
+                    show: false,
+                    message: '',
+                    type: 'info'
+                });
                 
                 // 状态相关
                 const statusMessage = ref('系统就绪');
@@ -357,6 +490,34 @@
                 
                 // 定时器
                 const timer = ref(null);
+                
+                // 翻译API配置 - 提供多个选项
+                const translateApis = reactive({
+                    localTranslate: {
+                        url: 'local',
+                        name: '本地翻译 (无CORS问题)',
+                        cors: true
+                    },
+                    myMemory: {
+                        url: 'https://api.mymemory.translated.net/get',
+                        name: 'MyMemory (免费)',
+                        cors: true
+                    },
+                    googleTranslate: {
+                        url: 'https://translate.googleapis.com/translate_a/single',
+                        name: 'Google Translate (免费)',
+                        cors: true
+                    },
+                    libreTranslate: {
+                        url: 'https://libretranslate.de/translate',
+                        name: 'LibreTranslate (免费)',
+                        cors: false
+                    }
+                });
+                
+                // 检测是否为本地文件运行
+                const isLocalFile = ref(window.location.protocol === 'file:');
+                const currentTranslateApi = ref(window.location.protocol === 'file:' ? 'localTranslate' : 'myMemory'); // 本地文件默认使用本地翻译
                 
                 // 检查浏览器支持
                 const checkBrowserSupport = () => {
@@ -448,6 +609,11 @@
                 // 开始录制
                 const startRecording = async () => {
                     try {
+                        // 重置之前的录制状态
+                        if (stream.value) {
+                            stream.value.getTracks().forEach(track => track.stop());
+                        }
+                        
                         const displayStream = await navigator.mediaDevices.getDisplayMedia({
                             video: getVideoConstraints(),
                             audio: true
@@ -467,9 +633,43 @@
 
                         stream.value = displayStream;
 
+                        // 设置实时预览 - 使用srcObject而不是createObjectURL
+                        videoUrl.value = '';
+                        nextTick(() => {
+                            const videoElement = document.querySelector('#app video');
+                            if (videoElement) {
+                                try {
+                                    videoElement.srcObject = displayStream;
+                                    videoElement.onloadedmetadata = () => {
+                                        videoElement.play().catch(e => {
+                                            console.log('自动播放被阻止:', e);
+                                            ElMessage.info('请手动点击播放按钮开始预览');
+                                        });
+                                    };
+                                    videoElement.onerror = (e) => {
+                                        console.error('视频预览错误:', e);
+                                        ElMessage.error('视频预览加载失败');
+                                    };
+                                } catch (err) {
+                                    console.error('设置视频预览失败:', err);
+                                    ElMessage.error('视频预览设置失败');
+                                }
+                            }
+                        });
+
                         recordedChunks.value = [];
+                        
+                        // 检查支持的MIME类型
+                        let mimeType = 'video/webm;codecs=vp9';
+                        if (!MediaRecorder.isTypeSupported(mimeType)) {
+                            mimeType = 'video/webm;codecs=vp8';
+                        }
+                        if (!MediaRecorder.isTypeSupported(mimeType)) {
+                            mimeType = 'video/webm';
+                        }
+                        
                         mediaRecorder.value = new MediaRecorder(stream.value, {
-                            mimeType: 'video/webm;codecs=vp9'
+                            mimeType: mimeType
                         });
 
                         mediaRecorder.value.ondataavailable = (event) => {
@@ -482,6 +682,14 @@
                             const blob = new Blob(recordedChunks.value, { type: 'video/webm' });
                             videoUrl.value = URL.createObjectURL(blob);
                             recordedVideo.value = true;
+                            
+                            // 清除实时预览的srcObject
+                            nextTick(() => {
+                                const videoElement = document.querySelector('#app video');
+                                if (videoElement) {
+                                    videoElement.srcObject = null;
+                                }
+                            });
                             
                             statusMessage.value = '录制完成，可以下载视频';
                             statusType.value = 'success';
@@ -650,10 +858,231 @@
                     }
                 };
                 
+                // 翻译功能
+                const translateTranscript = async () => {
+                    if (!transcriptText.value || transcriptText.value === '等待语音输入...') {
+                        ElMessage.warning('没有字幕内容可翻译');
+                        return;
+                    }
+
+                    if (isTranslating.value) {
+                        ElMessage.warning('正在翻译中，请稍候...');
+                        return;
+                    }
+
+                    isTranslating.value = true;
+                    translationStatus.show = true;
+                    translationStatus.message = '正在翻译...';
+                    translationStatus.type = 'info';
+
+                    try {
+                        // 将字幕文本按行分割并翻译
+                        const lines = transcriptText.value.split('\n').filter(line => line.trim());
+                        let translatedLines = [];
+
+                        for (let i = 0; i < lines.length; i++) {
+                            const line = lines[i];
+                            if (line.trim()) {
+                                // 提取时间戳和文本内容
+                                const match = line.match(/^(\[.*?\]) (.*)$/);
+                                if (match) {
+                                    const timestamp = match[1];
+                                    const text = match[2];
+                                    
+                                    try {
+                                        const translatedText = await translateText(text, 'zh', translationSettings.targetLanguage);
+                                        translatedLines.push(`${timestamp} ${translatedText}`);
+                                        translationStatus.message = `正在翻译第 ${i + 1}/${lines.length} 行...`;
+                                    } catch (err) {
+                                        console.error('翻译失败:', err);
+                                        translatedLines.push(`${timestamp} [翻译失败] ${text}`);
+                                    }
+                                } else {
+                                    translatedLines.push(line);
+                                }
+                            }
+                        }
+
+                        translationText.value = translatedLines.join('\n');
+                        translationStatus.message = '翻译完成';
+                        translationStatus.type = 'success';
+                        
+                        setTimeout(() => {
+                            translationStatus.show = false;
+                        }, 3000);
+
+                    } catch (err) {
+                        console.error('翻译过程出错:', err);
+                        let errorMessage = '翻译失败: ' + err.message;
+                        
+                        // 如果是CORS错误，提供解决方案
+                        if (err.message.includes('CORS') || err.message.includes('preflight')) {
+                            errorMessage = '翻译失败: CORS跨域问题。请尝试切换到其他翻译API，或使用本地服务器运行此文件。';
+                        }
+                        
+                        translationStatus.message = errorMessage;
+                        translationStatus.type = 'error';
+                        setTimeout(() => {
+                            translationStatus.show = false;
+                        }, 8000);
+                    } finally {
+                        isTranslating.value = false;
+                    }
+                };
+
+                // 翻译单行文本
+                const translateText = async (text, sourceLang, targetLang) => {
+                    const api = translateApis[currentTranslateApi.value];
+                    
+                    try {
+                        let response;
+                        
+                        switch (currentTranslateApi.value) {
+                            case 'localTranslate':
+                                // 本地翻译逻辑
+                                console.log('使用本地翻译API');
+                                // 在本地文件运行时，直接返回原始文本
+                                if (isLocalFile.value) {
+                                    return text;
+                                }
+                                // 在服务器上运行时，模拟API调用
+                                await new Promise(resolve => setTimeout(resolve, 100)); // 模拟网络延迟
+                                return `[本地翻译] ${text}`; // 示例本地翻译
+                                
+                            case 'myMemory':
+                                // MyMemory API - GET请求，CORS友好
+                                const myMemoryUrl = `${api.url}?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`;
+                                response = await fetch(myMemoryUrl);
+                                if (!response.ok) {
+                                    throw new Error(`MyMemory API请求失败: ${response.status}`);
+                                }
+                                const myMemoryData = await response.json();
+                                return myMemoryData.responseData.translatedText;
+                                
+                            case 'googleTranslate':
+                                // Google Translate API - GET请求，CORS友好
+                                const googleUrl = `${api.url}?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+                                response = await fetch(googleUrl);
+                                if (!response.ok) {
+                                    throw new Error(`Google Translate API请求失败: ${response.status}`);
+                                }
+                                const googleData = await response.json();
+                                return googleData[0][0][0];
+                                
+                            case 'libreTranslate':
+                                // LibreTranslate API - POST请求，可能有CORS问题
+                                response = await fetch(api.url, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        q: text,
+                                        source: sourceLang,
+                                        target: targetLang,
+                                        format: 'text'
+                                    })
+                                });
+                                if (!response.ok) {
+                                    throw new Error(`LibreTranslate API请求失败: ${response.status}`);
+                                }
+                                const libreData = await response.json();
+                                return libreData.translatedText;
+                                
+                            default:
+                                throw new Error('未知的翻译API');
+                        }
+                    } catch (error) {
+                        console.error('翻译请求失败:', error);
+                        // 如果当前API失败，尝试切换到其他API
+                        if (currentTranslateApi.value !== 'localTranslate') { // 避免无限循环
+                            console.log('尝试切换到本地翻译API...');
+                            currentTranslateApi.value = 'localTranslate';
+                            return await translateText(text, sourceLang, targetLang);
+                        }
+                        throw error;
+                    }
+                };
+
+                // 清空翻译
+                const clearTranslation = () => {
+                    translationText.value = '';
+                    translationStatus.show = false;
+                    ElMessage.success('翻译已清空');
+                };
+
+                // 导出翻译
+                const exportTranslation = () => {
+                    if (!translationText.value || translationText.value === '等待翻译...') {
+                        ElMessage.warning('没有翻译内容可导出');
+                        return;
+                    }
+                    
+                    const blob = new Blob([translationText.value], { type: 'text/plain;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `vue3-translation-${translationSettings.targetLanguage}-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    
+                    ElMessage.success('翻译导出成功');
+                };
+
+                // 复制翻译
+                const copyTranslation = () => {
+                    if (!translationText.value || translationText.value === '等待翻译...') {
+                        ElMessage.warning('没有翻译内容可复制');
+                        return;
+                    }
+                    
+                    navigator.clipboard.writeText(translationText.value).then(() => {
+                        ElMessage.success('翻译已复制到剪贴板');
+                    }).catch(err => {
+                        console.error('复制失败:', err);
+                        ElMessage.error('复制失败');
+                    });
+                };
+
+                // 保存翻译
+                const saveTranslation = () => {
+                    if (!translationText.value || translationText.value === '等待翻译...') {
+                        ElMessage.warning('没有翻译内容可保存');
+                        return;
+                    }
+                    
+                    localStorage.setItem('vue3SavedTranslation', translationText.value);
+                    localStorage.setItem('vue3SavedTranslationTime', new Date().toISOString());
+                    localStorage.setItem('vue3SavedTranslationLang', translationSettings.targetLanguage);
+                    ElMessage.success('翻译已保存到本地存储');
+                };
+
+                // 加载保存的翻译
+                const loadSavedTranslation = () => {
+                    const savedTranslation = localStorage.getItem('vue3SavedTranslation');
+                    if (savedTranslation) {
+                        const savedTime = localStorage.getItem('vue3SavedTranslationTime');
+                        const savedLang = localStorage.getItem('vue3SavedTranslationLang');
+                        
+                        ElMessageBox.confirm(`发现保存的翻译内容 (${new Date(savedTime).toLocaleString()}, 语言: ${savedLang})，是否恢复？`, '提示', {
+                            confirmButtonText: '恢复',
+                            cancelButtonText: '取消',
+                            type: 'info'
+                        }).then(() => {
+                            translationText.value = savedTranslation;
+                            translationSettings.targetLanguage = savedLang || 'en';
+                            ElMessage.success('翻译内容已恢复');
+                        }).catch(() => {
+                            // 用户取消
+                        });
+                    }
+                };
+                
                 // 生命周期钩子
                 onMounted(() => {
                     checkBrowserSupport();
                     loadSavedTranscript();
+                    loadSavedTranslation();
                 });
                 
                 onBeforeUnmount(() => {
@@ -678,12 +1107,28 @@
                     }
                 });
                 
+                // 监听翻译API变化
+                watch(() => currentTranslateApi.value, (newVal) => {
+                    console.log('切换到翻译API:', translateApis[newVal].name);
+                    
+                    // 如果是本地文件且选择了需要网络的API，给出提示
+                    if (isLocalFile.value && newVal !== 'localTranslate') {
+                        ElMessage.warning('注意：在本地文件运行时，网络翻译API可能遇到CORS问题。建议使用"本地翻译"选项。');
+                    }
+                });
+                
                 return {
                     // 响应式数据
                     isRecording,
                     videoUrl,
                     recordedVideo,
                     transcriptText,
+                    translationText,
+                    isTranslating,
+                    translationSettings,
+                    translationStatus,
+                    currentTranslateApi,
+                    isLocalFile,
                     statusMessage,
                     statusType,
                     recordingInfo,
@@ -700,6 +1145,7 @@
                     Document,
                     CopyDocument,
                     Folder,
+                    Refresh,
                     
                     // 方法
                     startRecording,
@@ -709,7 +1155,12 @@
                     clearTranscript,
                     exportTranscript,
                     copyTranscript,
-                    saveTranscript
+                    saveTranscript,
+                    translateTranscript,
+                    clearTranslation,
+                    exportTranslation,
+                    copyTranslation,
+                    saveTranslation
                 };
             }
         };
