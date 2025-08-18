@@ -1,0 +1,3691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue3录屏+智能语音转字幕系统</title>
+    
+    <!-- Vue3 + Element Plus -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <!-- Element Plus Icons -->
+    <script src="https://unpkg.com/@element-plus/icons-vue"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #ffffff;
+            color: #1a202c;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #ffffff;
+            color: #1a202c;
+            padding: 40px 30px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #1a202c;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .control-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .panel {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .video-container {
+            width: 100%;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            position: relative;
+            border: 1px solid #dee2e6;
+        }
+        
+        .video-container video {
+            width: 100%;
+            display: block;
+            background: #000;
+        }
+        
+        .video-container .video-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .video-placeholder {
+            height: 250px;
+        }
+        
+        .status-info {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .transcript-content {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 200px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .translation-content {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 200px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .buffer-status {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+        
+        .buffer-status.active {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        
+        .correction-panel {
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 1px solid #dee2e6;
+        }
+        
+        .correction-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .correction-original {
+            color: #dc3545;
+            text-decoration: line-through;
+            margin-right: 10px;
+        }
+        
+        .correction-suggested {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        
+        .enhanced-features {
+            color: #1a202c;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .enhanced-features h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.2em;
+        }
+        
+        .enhanced-features ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .enhanced-features li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- 返回文档链接 -->
+    <div style="position: fixed; top: 10px; left: 10px; z-index: 2000; background: rgba(255, 255, 255, 0.95); padding: 8px 12px; border-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+        <a href="https://www.siqiongbiluo.love/article/23" style="text-decoration: none; color: #4fc08d; font-size: 14px; font-weight: 500;">← 返回文档</a>
+    </div>
+    <div id="app">
+        <div class="container">
+            <div class="header">
+                <h1>Vue3录屏+智能语音转字幕系统</h1>
+                <p>增强版：智能缓冲池 + 上下文关联 + 错别字纠正</p>
+            </div>
+            
+            <div class="main-content">
+                <!-- 增强功能说明 -->
+                <div class="enhanced-features">
+                    <h3>新增智能功能</h3>
+                    <ul>
+                        <li><strong>智能缓冲池</strong>：累积语音片段，等待完整句子再输出</li>
+                        <li><strong>上下文关联</strong>：利用前后文信息进行语义纠错</li>
+                        <li><strong>智能断句</strong>：基于语义和停顿自动识别句子边界</li>
+                        <li><strong>错别字纠正</strong>：实时检测和纠正识别错误</li>
+                        <li><strong>实时优化</strong>：动态调整识别参数提升准确率</li>
+                    </ul>
+                </div>
+                
+                <div class="control-row">
+                    <!-- 录制控制面板 -->
+                    <div class="panel">
+                        <h2 class="section-title">录制控制</h2>
+                        
+                        <el-form :model="settings" label-width="120px">
+                            <el-form-item label="视频质量">
+                                <el-select v-model="settings.videoQuality" style="width: 100%;">
+                                    <el-option label="1080p" value="1080p"></el-option>
+                                    <el-option label="720p" value="720p"></el-option>
+                                    <el-option label="480p" value="480p"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            
+                            <el-form-item label="音频来源">
+                                <el-select v-model="settings.audioSource" style="width: 100%;">
+                                    <el-option label="系统音频" value="system"></el-option>
+                                    <el-option label="麦克风" value="microphone"></el-option>
+                                    <el-option label="系统+麦克风" value="both"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            
+                            <el-form-item label="识别语言">
+                                <el-select v-model="settings.language" style="width: 100%;">
+                                    <el-option label="中文 (简体)" value="zh-CN"></el-option>
+                                    <el-option label="中文 (繁体)" value="zh-TW"></el-option>
+                                    <el-option label="英语" value="en-US"></el-option>
+                                    <el-option label="日语" value="ja-JP"></el-option>
+                                    <el-option label="韩语" value="ko-KR"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            
+                            <el-form-item label="智能缓冲">
+                                <el-switch v-model="settings.smartBuffer" active-text="启用" inactive-text="禁用"></el-switch>
+                            </el-form-item>
+                            
+                            <el-form-item label="缓冲时间 (秒)">
+                                <el-slider v-model="settings.bufferTime" :min="0.5" :max="3" :step="0.1" show-input></el-slider>
+                                <small style="color: #666;">智能系统会根据内容自动调整实际缓冲时间</small>
+                            </el-form-item>
+                            
+                            <el-form-item label="智能处理">
+                                <el-switch v-model="settings.advancedProcessing" active-text="启用" inactive-text="禁用"></el-switch>
+                                <small style="color: #666;">启用语义分析和上下文关联</small>
+                            </el-form-item>
+                            
+                            <el-form-item label="错别字纠正">
+                                <el-switch v-model="settings.autoCorrect" active-text="启用" inactive-text="禁用"></el-switch>
+                            </el-form-item>
+                            
+                            <el-form-item label="候选结果数量">
+                                <el-select v-model="settings.maxAlternatives" style="width: 100%;">
+                                    <el-option label="1个 (最快)" :value="1"></el-option>
+                                    <el-option label="3个 (推荐)" :value="3"></el-option>
+                                    <el-option label="5个 (最准确)" :value="5"></el-option>
+                                </el-select>
+                                <small style="color: #666;">更多候选结果可提高识别准确率，但会增加处理时间</small>
+                            </el-form-item>
+                            
+                            <el-form-item label="识别灵敏度">
+                                <el-slider v-model="settings.recognitionSensitivity" :min="0.1" :max="1.0" :step="0.1" show-input></el-slider>
+                                <small style="color: #666;">灵敏度越高，识别越敏感，但可能产生更多错误</small>
+                            </el-form-item>
+                            
+                            <el-form-item label="语义分析">
+                                <el-switch v-model="settings.useSemanticAnalysis" active-text="启用" inactive-text="禁用"></el-switch>
+                                <small style="color: #666;">使用语义分析提高识别准确率</small>
+                            </el-form-item>
+                            
+                            <el-form-item label="连续识别">
+                                <el-switch v-model="settings.continuousMode" active-text="启用" inactive-text="禁用"></el-switch>
+                                <small style="color: #666;">连续识别模式适合长时间语音输入</small>
+                            </el-form-item>
+                        </el-form>
+                        
+                        <div class="btn-group">
+                            <el-button type="primary" @click="startRecording" :disabled="isRecording" size="large">
+                                开始录制
+                            </el-button>
+                            <el-button type="danger" @click="stopRecording" :disabled="!isRecording" size="large">
+                                停止录制
+                            </el-button>
+                            <el-button @click="downloadVideo" :disabled="!recordedBlob" size="large">
+                                下载视频
+                            </el-button>
+                                                    <el-button @click="checkSpeechRecognitionSupport" size="large">
+                            检查语音识别
+                        </el-button>
+                        <el-button @click="checkNetworkStatus" size="large" style="margin-left: 10px;">
+                            检查网络状态
+                        </el-button>
+                        </div>
+                        
+                        <div class="status-info" v-if="status">
+                            <strong>状态：</strong>{{ status }}
+                        </div>
+                        
+                        <!-- 文本质量监控 -->
+                        <div class="quality-monitor" v-if="isRecording" style="margin-top: 10px; padding: 8px; background: #f0f9ff; border-radius: 6px; border-left: 3px solid #3b82f6;">
+                            <small style="color: #1e40af;">
+                                文本质量监控: 
+                                缓冲片段: {{ bufferStatus.bufferLength }} | 
+                                累积文本: {{ bufferStatus.currentText.length }}字符 |
+                                置信度: {{ bufferStatus.confidenceScores.length > 0 ? (bufferStatus.confidenceScores.reduce((a, b) => a + b, 0) / bufferStatus.confidenceScores.length * 100).toFixed(1) + '%' : 'N/A' }}
+                            </small>
+                        </div>
+                        
+                        <!-- 语音识别优化建议 -->
+                        <div class="optimization-tips" v-if="isRecording" style="margin-top: 15px; padding: 10px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                            <h4 style="margin: 0 0 8px 0; color: #1e40af;">语音识别优化建议</h4>
+                            <ul style="margin: 0; padding-left: 20px; color: #374151;">
+                                <li>确保麦克风距离嘴部15-20厘米</li>
+                                <li>减少环境噪音，选择安静的环境</li>
+                                <li>语速适中，发音清晰</li>
+                                <li>根据识别效果调整灵敏度和候选结果数量</li>
+                                <li>启用语义分析可提高准确率</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- 视频预览面板 -->
+                    <div class="panel">
+                        <h2 class="section-title">视频预览</h2>
+                        
+                        <div class="video-container">
+                            <video ref="videoElement" autoplay muted></video>
+                            <div class="video-placeholder" v-if="!isRecording">
+                                <span>录制开始后显示预览</span>
+                            </div>
+                        </div>
+                        
+                        <div class="btn-group">
+                            <el-button @click="clearTranscript" size="large">清空字幕</el-button>
+                            <el-button @click="exportTranscript" size="large">导出字幕</el-button>
+                            <el-button @click="copyTranscript" size="large">复制字幕</el-button>
+                            <el-button @click="saveTranscript" size="large">保存字幕</el-button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 智能缓冲状态 -->
+                <!-- 智能缓冲状态 -->
+                <div class="buffer-status" :class="{ active: bufferStatus.isActive }" v-if="settings.smartBuffer">
+                    <strong>智能缓冲状态：</strong>
+                    <span v-if="bufferStatus.isActive">正在累积语音片段 ({{ bufferStatus.bufferLength }} 个片段)</span>
+                    <span v-else>等待语音输入...</span>
+                    <br>
+                    <small>
+                        缓冲时间: {{ settings.bufferTime }}秒 | 
+                        累积文本: "{{ bufferStatus.currentText }}" |
+                        置信度: {{ bufferStatus.confidenceScores.length > 0 ? (bufferStatus.confidenceScores.reduce((a, b) => a + b, 0) / bufferStatus.confidenceScores.length * 100).toFixed(1) + '%' : 'N/A' }}
+                    </small>
+                    <div v-if="settings.advancedProcessing && bufferStatus.toneBuffer.length > 0" style="margin-top: 5px;">
+                        <small style="color: #666;">
+                            语气分析: {{ getToneAnalysisDisplay() }}
+                        </small>
+                    </div>
+                    <div v-if="settings.advancedProcessing && bufferStatus.contextHistory.length > 0" style="margin-top: 5px;">
+                        <small style="color: #666;">
+                            上下文历史: {{ bufferStatus.contextHistory.slice(-2).join(' | ') }}
+                        </small>
+                    </div>
+                    <div style="margin-top: 5px;">
+                        <small style="color: #059669;">
+                            防丢失模式已启用 | 
+                            实时监控: {{ bufferStatus.speechBuffer.length > 0 ? '检测到' + bufferStatus.speechBuffer.length + '个语音片段' : '等待语音输入' }}
+                        </small>
+                    </div>
+                    <div style="margin-top: 5px;">
+                        <small style="color: #dc2626;">
+                            自动重连: {{ reconnectCount > 0 ? '第' + reconnectCount + '次重连' : '正常连接' }}
+                        </small>
+                    </div>
+                    <div style="margin-top: 5px;">
+                        <small style="color: #059669;">
+                            网络状态: {{ isOnline ? '在线' : '离线' }}
+                            <span v-if="networkType" style="margin-left: 10px;">
+                                ({{ networkType }})
+                            </span>
+                            <span style="margin-left: 10px;">
+                                {{ currentBrowser }}
+                            </span>
+                        </small>
+                    </div>
+                </div>
+                
+                <!-- 传统模式状态 -->
+                <div class="buffer-status" v-if="!settings.smartBuffer">
+                    <strong>传统识别状态：</strong>
+                    <span>实时识别模式</span>
+                    <br>
+                    <small>
+                        置信度: {{ bufferStatus.confidenceScores.length > 0 ? (bufferStatus.confidenceScores[0] * 100).toFixed(1) + '%' : 'N/A' }}
+                    </small>
+                </div>
+                
+                                        <!-- 错别字纠正面板 -->
+                        <div class="correction-panel" v-if="settings.autoCorrect && corrections.length > 0">
+                            <h3>错别字纠正建议 ({{ corrections.length }}个)</h3>
+                            <div class="correction-item" v-for="(correction, index) in corrections" :key="index">
+                                <span class="correction-original">{{ correction.original }}</span>
+                                <span>→</span>
+                                <span class="correction-suggested">{{ correction.suggested }}</span>
+                                <small v-if="correction.count" style="color: #666;">({{ correction.count }}次)</small>
+                                <el-button size="small" @click="applyCorrection(index)" style="margin-left: auto;">应用</el-button>
+                            </div>
+                        </div>
+                        
+                        <!-- 错别字纠正状态 -->
+                        <div class="correction-status" v-if="settings.autoCorrect && isRecording" style="margin-top: 10px; padding: 8px; background: #f0fdf4; border-radius: 6px; border-left: 3px solid #22c55e;">
+                            <small style="color: #166534;">
+                                自动错别字纠正已启用 | 
+                                已纠正: {{ corrections.length }}个错误 | 
+                                实时应用纠正到字幕中
+                            </small>
+                        </div>
+                
+                <!-- 字幕面板 -->
+                <div class="panel">
+                    <h2 class="section-title">智能字幕</h2>
+                    
+                    <div class="transcript-content" ref="transcriptContent">
+                        {{ transcriptText || '等待语音识别...' }}
+                    </div>
+                </div>
+                
+                <!-- 翻译面板 -->
+                <div class="panel">
+                    <h2 class="section-title">翻译功能</h2>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <el-select v-model="currentTranslateApi" placeholder="选择翻译API" style="width: 180px; margin-right: 15px;">
+                            <el-option label="本地翻译 (无CORS问题)" value="localTranslate"></el-option>
+                            <el-option label="MyMemory (免费)" value="myMemory"></el-option>
+                            <el-option label="Google Translate (免费)" value="googleTranslate"></el-option>
+                            <el-option label="LibreTranslate (免费)" value="libreTranslate"></el-option>
+                        </el-select>
+                        
+                        <el-select v-model="translationSettings.targetLanguage" placeholder="目标语言" style="width: 120px; margin-right: 15px;">
+                            <el-option label="英语" value="en"></el-option>
+                            <el-option label="日语" value="ja"></el-option>
+                            <el-option label="韩语" value="ko"></el-option>
+                            <el-option label="法语" value="fr"></el-option>
+                            <el-option label="德语" value="de"></el-option>
+                            <el-option label="西班牙语" value="es"></el-option>
+                        </el-select>
+                        
+                        <el-button type="warning" @click="translateTranscript" :loading="translationStatus.isLoading">
+                            翻译字幕
+                        </el-button>
+                        <el-button @click="clearTranslation">清空翻译</el-button>
+                    </div>
+                    
+                    <div class="status-info" v-if="translationStatus.message">
+                        <strong>翻译状态：</strong>{{ translationStatus.message }}
+                    </div>
+                    
+                    <div class="translation-content">{{ translationText || '等待翻译...' }}</div>
+                    
+                    <div class="btn-group">
+                        <el-button @click="exportTranslation" 
+                                 :disabled="!translationText || translationText === '等待翻译...'">
+                            导出翻译
+                        </el-button>
+                        <el-button @click="copyTranslation" 
+                                 :disabled="!translationText || translationText === '等待翻译...'">
+                            复制翻译
+                        </el-button>
+                        <el-button @click="saveTranslation" 
+                                 :disabled="!translationText || translationText === '等待翻译...'">
+                            保存翻译
+                        </el-button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, onMounted, nextTick } = Vue;
+        const { ElMessage, ElMessageBox } = ElementPlus;
+
+        createApp({
+            setup() {
+                // 基础状态
+                const isRecording = ref(false);
+                const status = ref('');
+                const startTime = ref(null);
+                const stream = ref(null);
+                const recordedBlob = ref(null);
+                const videoElement = ref(null);
+                const transcriptContent = ref(null);
+                
+                // 字幕相关
+                const transcriptText = ref('');
+                
+                // 翻译相关
+                const translationText = ref('');
+                const translationStatus = reactive({
+                    isLoading: false,
+                    message: ''
+                });
+                
+                // 智能缓冲相关
+                const bufferStatus = reactive({
+                    isActive: false,
+                    bufferLength: 0,
+                    currentText: '',
+                    bufferTimer: null,
+                    speechBuffer: [],
+                    // 新增：语义分析相关
+                    sentenceBuffer: [],
+                    lastProcessedTime: 0,
+                    silenceDuration: 0,
+                    lastSpeechTime: 0,
+                    confidenceScores: [],
+                    // 新增：上下文管理
+                    contextHistory: [],
+                    semanticContext: '',
+                    // 新增：语气断句相关
+                    toneBuffer: [],
+                    pauseDuration: 0,
+                    lastToneChange: 0,
+                    speechIntensity: [],
+                    pitchChanges: [],
+                    volumeLevels: []
+                });
+                
+                // 错别字纠正相关
+                const corrections = ref([]);
+                
+                // 设置
+                const settings = reactive({
+                    videoQuality: '720p',
+                    audioSource: 'both',
+                    language: 'zh-CN',
+                    continuous: true,
+                    smartBuffer: true,
+                    bufferTime: 2.5, // 增加缓冲时间，提高文本完整性
+                    autoCorrect: true,
+                    advancedProcessing: true, // 开启高级处理
+                    // 新增语音识别优化设置
+                    maxAlternatives: 1, // 默认使用1个候选结果，确保稳定性
+                    recognitionSensitivity: 0.6, // 适中的灵敏度
+                    useSemanticAnalysis: true, // 开启语义分析
+                    continuousMode: true
+                });
+                
+                const translationSettings = reactive({
+                    targetLanguage: 'en'
+                });
+                
+                // 翻译API配置
+                const translateApis = reactive({
+                    localTranslate: {
+                        url: '',
+                        name: '本地翻译 (无CORS问题)',
+                        method: 'GET'
+                    },
+                    myMemory: {
+                        url: 'https://api.mymemory.translated.net/get',
+                        name: 'MyMemory (免费)',
+                        method: 'GET'
+                    },
+                    googleTranslate: {
+                        url: 'https://translate.googleapis.com/translate_a/single',
+                        name: 'Google Translate (免费)',
+                        method: 'GET'
+                    },
+                    libreTranslate: {
+                        url: 'https://libretranslate.de/translate',
+                        name: 'LibreTranslate (免费)',
+                        method: 'POST'
+                    }
+                });
+                
+                const currentTranslateApi = ref(window.location.protocol === 'file:' ? 'localTranslate' : 'myMemory');
+                
+                // 语音识别实例
+                const recognition = ref(null);
+                // 重连计数器
+                const reconnectCount = ref(0);
+                // 网络状态相关
+                const isOnline = ref(true);
+                const networkType = ref('未知');
+                const currentBrowser = ref('未知');
+                
+                // 改进的缓冲处理 - 防止语音丢失版本
+                const processSpeechBuffer = () => {
+                    if (bufferStatus.speechBuffer.length === 0) return;
+                    
+                    console.log('处理缓冲池:', {
+                        bufferLength: bufferStatus.speechBuffer.length,
+                        bufferContent: bufferStatus.speechBuffer.map(item => item.text)
+                    });
+                    
+                    // 智能合并所有文本，防止丢失
+                    let allText = '';
+                    const processedItems = [];
+                    
+                    // 按时间顺序处理，确保不丢失
+                    bufferStatus.speechBuffer.forEach((item, index) => {
+                        if (item.text && item.text.trim()) {
+                            // 检查是否与已处理的内容重叠
+                            if (processedItems.length > 0) {
+                                const lastProcessed = processedItems[processedItems.length - 1];
+                                const overlap = findTextOverlap(lastProcessed, item.text);
+                                
+                                if (overlap.length > 0) {
+                                    // 有重叠，只添加不重叠的部分
+                                    const nonOverlapPart = item.text.substring(overlap.length);
+                                    if (nonOverlapPart.trim()) {
+                                        allText += ' ' + nonOverlapPart;
+                                        processedItems.push(nonOverlapPart);
+                                    }
+                                } else {
+                                    // 无重叠，直接添加
+                                    allText += (allText ? ' ' : '') + item.text;
+                                    processedItems.push(item.text);
+                                }
+                            } else {
+                                // 第一个项目
+                                allText = item.text;
+                                processedItems.push(item.text);
+                            }
+                        }
+                    });
+                    
+                    allText = allText.trim();
+                    
+                    if (allText) {
+                        console.log('合并后的文本:', allText);
+                        
+                        // 1. 基础文本清理
+                        allText = cleanBasicText(allText);
+                        
+                        // 2. 智能句子分割
+                        const sentences = smartSentenceSplit(allText);
+                        
+                        // 3. 上下文关联处理
+                        const processedSentences = processContextualSentences(sentences);
+                        
+                        // 4. 输出处理后的句子
+                        processedSentences.forEach(sentence => {
+                            if (sentence.trim() && sentence.length > 1) {
+                                let finalSentence = sentence.trim();
+                                
+                                // 错别字纠正
+                                if (settings.autoCorrect) {
+                                    finalSentence = checkAndCorrectText(finalSentence);
+                                }
+                                
+                                const timestamp = getTimestamp();
+                                const line = `[${timestamp}] ${finalSentence}\n`;
+                                transcriptText.value += line;
+                                
+                                // 更新上下文历史
+                                bufferStatus.contextHistory.push(finalSentence);
+                                if (bufferStatus.contextHistory.length > 10) {
+                                    bufferStatus.contextHistory.shift();
+                                }
+                                
+                                console.log('输出字幕:', finalSentence);
+                            }
+                        });
+                        
+                        // 滚动到底部
+                        nextTick(() => {
+                            if (transcriptContent.value) {
+                                transcriptContent.value.scrollTop = transcriptContent.value.scrollHeight;
+                            }
+                        });
+                    } else {
+                        console.log('缓冲池处理后无有效文本');
+                    }
+                    
+                    // 清空缓冲池
+                    bufferStatus.speechBuffer = [];
+                    bufferStatus.sentenceBuffer = [];
+                    bufferStatus.toneBuffer = [];
+                    bufferStatus.currentText = '';
+                    bufferStatus.bufferLength = 0;
+                    bufferStatus.isActive = false;
+                    bufferStatus.confidenceScores = [];
+                    
+                    // 清除定时器
+                    if (bufferStatus.bufferTimer) {
+                        clearTimeout(bufferStatus.bufferTimer);
+                        bufferStatus.bufferTimer = null;
+                    }
+                };
+                
+                // 基础文本清理
+                const cleanBasicText = (text) => {
+                    if (!text) return '';
+                    
+                    // 移除重复的空格
+                    text = text.replace(/\s+/g, ' ');
+                    
+                    // 移除孤立的单字符（除非是标点符号）
+                    text = text.replace(/\b[的得地]\b/g, '');
+                    
+                    // 修复常见的重复字符和词汇
+                    const commonFixes = {
+                        // 重复字符修复
+                        '呢呢': '呢',
+                        '啊啊': '啊',
+                        '吧吧': '吧',
+                        '呀呀': '呀',
+                        '哦哦': '哦',
+                        '哎哎': '哎',
+                        '嗯嗯': '嗯',
+                        '哼哼': '哼',
+                        '唉唉': '唉',
+                        '哇哇': '哇',
+                        '哈哈': '哈',
+                        '嘿嘿': '嘿',
+                        
+                        // 重复词汇修复
+                        '和和': '和',
+                        '与与': '与',
+                        '或或': '或',
+                        '但但': '但',
+                        '而而': '而',
+                        '却却': '却',
+                        '然而然而': '然而',
+                        '不过不过': '不过',
+                        '只是只是': '只是',
+                        '除了除了': '除了',
+                        '包括包括': '包括',
+                        
+                        // 重复时间词修复
+                        '今天今天': '今天',
+                        '明天明天': '明天',
+                        '昨天昨天': '昨天',
+                        '现在现在': '现在',
+                        '刚才刚才': '刚才',
+                        '马上马上': '马上',
+                        '立刻立刻': '立刻',
+                        '很快很快': '很快',
+                        '慢慢慢慢': '慢慢',
+                        '一直一直': '一直',
+                        '经常经常': '经常',
+                        '有时有时': '有时',
+                        '偶尔偶尔': '偶尔',
+                        '从来从来': '从来',
+                        '已经已经': '已经',
+                        '正在正在': '正在',
+                        '将要将要': '将要',
+                        '准备准备': '准备',
+                        '打算打算': '打算',
+                        '计划计划': '计划',
+                        
+                        // 重复数量词修复
+                        '一个一个': '一个',
+                        '两个两个': '两个',
+                        '三个三个': '三个',
+                        '很多很多': '很多',
+                        '一些一些': '一些',
+                        '几个几个': '几个',
+                        '全部全部': '全部',
+                        '部分部分': '部分',
+                        '一半一半': '一半',
+                        '第一第一': '第一',
+                        '第二第二': '第二',
+                        '第三第三': '第三',
+                        '最后最后': '最后',
+                        '开始开始': '开始',
+                        '结束结束': '结束',
+                        '中间中间': '中间',
+                        '旁边旁边': '旁边',
+                        '附近附近': '附近',
+                        '远处远处': '远处'
+                    };
+                    
+                    Object.entries(commonFixes).forEach(([error, correction]) => {
+                        text = text.replace(new RegExp(error, 'g'), correction);
+                    });
+                    
+                    return text.trim();
+                };
+                
+                // 智能句子分割
+                const smartSentenceSplit = (text) => {
+                    if (!text) return [];
+                    
+                    // 首先按标点符号分割
+                    let sentences = text.split(/[。！？.!?]/).filter(s => s.trim());
+                    
+                    // 如果没有标点符号，尝试按语气词分割
+                    if (sentences.length <= 1) {
+                        sentences = text.split(/[呢啊吧呀哦哎]/).filter(s => s.trim());
+                    }
+                    
+                    // 如果还是没有分割，按长度分割
+                    if (sentences.length <= 1 && text.length > 20) {
+                        const midPoint = Math.floor(text.length / 2);
+                        const spaceIndex = text.indexOf(' ', midPoint);
+                        if (spaceIndex > 0) {
+                            sentences = [
+                                text.substring(0, spaceIndex),
+                                text.substring(spaceIndex + 1)
+                            ].filter(s => s.trim());
+                        }
+                    }
+                    
+                    return sentences;
+                };
+                
+                // 智能缓冲判断
+                const shouldProcessBufferNow = (currentTime) => {
+                    const bufferLength = bufferStatus.speechBuffer.length;
+                    const timeSinceLastSpeech = currentTime - bufferStatus.lastSpeechTime;
+                    const totalTextLength = bufferStatus.currentText.length;
+                    
+                    // 1. 缓冲片段数量判断
+                    if (bufferLength >= 5) return true;
+                    
+                    // 2. 时间间隔判断
+                    if (timeSinceLastSpeech > 3000) return true; // 3秒无新语音
+                    
+                    // 3. 文本长度判断
+                    if (totalTextLength >= 50) return true; // 累积文本超过50字符
+                    
+                    // 4. 句子完整性判断
+                    const lastText = bufferStatus.speechBuffer[bufferStatus.speechBuffer.length - 1]?.text || '';
+                    if (lastText.match(/[。！？.!?]$/)) return true; // 以句号结尾
+                    
+                    // 5. 语气词判断
+                    if (lastText.match(/[呢啊吧呀哦哎]$/)) return true; // 以语气词结尾
+                    
+                    return false;
+                };
+                
+                // 动态缓冲时间计算
+                const calculateDynamicBufferTime = () => {
+                    const baseTime = settings.bufferTime * 1000;
+                    const bufferLength = bufferStatus.speechBuffer.length;
+                    const totalTextLength = bufferStatus.currentText.length;
+                    
+                    // 根据缓冲内容调整时间
+                    if (bufferLength >= 3) {
+                        return Math.min(baseTime * 0.5, 1000); // 快速处理
+                    }
+                    
+                    if (totalTextLength >= 30) {
+                        return Math.min(baseTime * 0.7, 1500); // 较快处理
+                    }
+                    
+                    return baseTime; // 默认时间
+                };
+                
+                // 上下文关联处理
+                const processContextualSentences = (sentences) => {
+                    if (!sentences || sentences.length === 0) return [];
+                    
+                    const processed = [];
+                    let currentSentence = '';
+                    
+                    for (let i = 0; i < sentences.length; i++) {
+                        const sentence = sentences[i].trim();
+                        
+                        // 跳过太短的句子
+                        if (sentence.length < 2) continue;
+                        
+                        // 如果当前句子太短，尝试与下一句合并
+                        if (sentence.length < 5 && i < sentences.length - 1) {
+                            const nextSentence = sentences[i + 1].trim();
+                            if (nextSentence.length > 0) {
+                                currentSentence = sentence + ' ' + nextSentence;
+                                i++; // 跳过下一句
+                            } else {
+                                currentSentence = sentence;
+                            }
+                        } else {
+                            currentSentence = sentence;
+                        }
+                        
+                        // 确保句子完整性
+                        if (currentSentence.length > 0) {
+                            // 如果句子以连接词结尾，尝试与下一句合并
+                            if (currentSentence.match(/[的和与或但而因为所以如果虽然但是]$/)) {
+                                if (i < sentences.length - 1) {
+                                    const nextSentence = sentences[i + 1].trim();
+                                    if (nextSentence.length > 0) {
+                                        currentSentence += ' ' + nextSentence;
+                                        i++;
+                                    }
+                                }
+                            }
+                            
+                            processed.push(currentSentence);
+                        }
+                    }
+                    
+                    return processed;
+                };
+                
+                // 深度去重处理
+                const deepDeduplication = () => {
+                    if (bufferStatus.speechBuffer.length === 0) return '';
+                    
+                    // 1. 提取所有文本片段
+                    const textSegments = bufferStatus.speechBuffer.map(item => item.text);
+                    
+                    // 2. 智能合并和去重
+                    const mergedText = intelligentMerge(textSegments);
+                    
+                    // 3. 移除重复内容
+                    const deduplicatedText = removeOverlappingContent(mergedText);
+                    
+                    // 4. 语义完整性检查
+                    const finalText = ensureSemanticIntegrity(deduplicatedText);
+                    
+                    return finalText;
+                };
+                
+                // 智能合并文本片段
+                const intelligentMerge = (segments) => {
+                    if (segments.length === 1) return segments[0];
+                    
+                    let result = segments[0];
+                    
+                    for (let i = 1; i < segments.length; i++) {
+                        const currentSegment = segments[i];
+                        const overlap = findOverlap(result, currentSegment);
+                        
+                        if (overlap.length > 0) {
+                            // 有重叠，合并重叠部分
+                            result = result + currentSegment.substring(overlap.length);
+                        } else {
+                            // 无重叠，直接拼接
+                            result = result + currentSegment;
+                        }
+                    }
+                    
+                    return result;
+                };
+                
+                // 查找重叠部分
+                const findOverlap = (text1, text2) => {
+                    const minOverlap = 3; // 最小重叠长度
+                    const maxOverlap = Math.min(text1.length, text2.length);
+                    
+                    for (let len = maxOverlap; len >= minOverlap; len--) {
+                        const suffix = text1.substring(text1.length - len);
+                        const prefix = text2.substring(0, len);
+                        
+                        if (suffix === prefix) {
+                            return suffix;
+                        }
+                    }
+                    
+                    return '';
+                };
+                
+                // 移除重叠内容
+                const removeOverlappingContent = (text) => {
+                    // 移除连续重复的短语
+                    const phrases = text.split(/[\s，。！？；：]/);
+                    const uniquePhrases = [];
+                    
+                    for (let i = 0; i < phrases.length; i++) {
+                        const currentPhrase = phrases[i];
+                        
+                        // 检查是否与前面的短语重复
+                        const isDuplicate = uniquePhrases.some(phrase => 
+                            phrase.includes(currentPhrase) || currentPhrase.includes(phrase)
+                        );
+                        
+                        if (!isDuplicate && currentPhrase.length > 0) {
+                            uniquePhrases.push(currentPhrase);
+                        }
+                    }
+                    
+                    return uniquePhrases.join('');
+                };
+                
+                // 确保语义完整性
+                const ensureSemanticIntegrity = (text) => {
+                    if (!text || text.length < 5) return text;
+                    
+                    // 移除孤立的短词汇
+                    const words = text.split(/[\s，。！？；：]/);
+                    const filteredWords = words.filter(word => {
+                        if (word.length < 2) return false;
+                        if (word.length === 2 && /[的了在是有为到说看听想]/g.test(word)) return true;
+                        return word.length >= 2;
+                    });
+                    
+                    let result = filteredWords.join('');
+                    
+                    // 修复常见的识别错误
+                    result = fixCommonRecognitionErrors(result);
+                    
+                    return result;
+                };
+                
+                // 修复常见的识别错误
+                const fixCommonRecognitionErrors = (text) => {
+                    const commonErrors = {
+                        // 原有错误修复
+                        '操作不当去': '操作不当',
+                        '拔梗去嘲笑': '拔梗去嘲笑',
+                        '科普完了之': '科普完了之后',
+                        '一个DLC没': '一个DLC没有',
+                        '多元宿舍儿': '多元宿舍',
+                        '餐厅呢就算': '餐厅就算',
+                        '卧室内呢': '卧室内',
+                        '房因此大厅': '因此大厅',
+                        '四个卧室不够住': '四个卧室不够住的话',
+                        '文化会诊影像': '文化会诊影像',
+                        '殊荣平台': '殊荣平台',
+                        '机械培养器': '机械培养器',
+                        '四核编译器': '四核编译器',
+                        '活学活用': '活学活用',
+                        '卸载安装': '卸载安装',
+                        '没事的时候': '没事的时候',
+                        '直接扔仓库': '直接扔仓库',
+                        '所以呢就': '所以呢就',
+                        '调整': '调整',
+                        '死了也都行': '死了也都行',
+                        '灵活的去进行': '灵活地进行',
+                        '变通': '变通',
+                        '机械师开局': '机械师开局',
+                        '单独设计': '单独设计',
+                        '注意事项': '注意事项',
+                        '前面的开局': '前面的开局',
+                        '开局小屋': '开局小屋',
+                        '大家也都知道': '大家也都知道',
+                        '奥德赛DLC': '奥德赛DLC',
+                        '引入了全新': '引入了全新',
+                        '泥中飞船': '泥中飞船',
+                        '开局呢也没': '开局呢也没有',
+                        '必要无脑': '必要无脑',
+                        '建造基的': '建造基地',
+                        '大家呢可以': '大家呢可以',
+                        '选择开': '选择开着',
+                        '着飞船': '着飞船',
+                        '到处游牧': '到处游牧',
+                        '因此呢在': '因此呢在',
+                        '啊从这里': '啊从这里',
+                        '也拿出我的': '也拿出我的',
+                        '前妻飞船': '前妻飞船',
+                        '布局耗费': '布局耗费',
+                        '396张板子': '396张板子',
+                        '前期呢就可以': '前期呢就可以',
+                        '获的四': '获得四',
+                        '明白': '明白',
+                        
+                        // 新增错误修复
+                        '虽然说呢现在研究室': '虽然说现在研究室',
+                        '能放在一个房间': '能放在一个房间',
+                        '有工作惩罚可是呢': '有工作惩罚可是呢',
+                        '架不住无菌的砖呢': '架不住无菌的砖呢',
+                        '实在是太呛了这里呢': '实在是太呛了这里呢',
+                        '直': '直接',
+                        '接造个墙隔开就好了': '接造个墙隔开就好了',
+                        '本身呢医疗模块的冗余度呢': '本身医疗模块的冗余度呢',
+                        '也足够牌呢': '也足够',
+                        '也变成了研究室的专属设施': '也变成了研究室的专属设施',
+                        '因此呢和': '因此呢和',
+                        '合在一起': '合在一起',
+                        '为了防止卧床休息的病人呢': '为了防止卧床休息的病人呢',
+                        '娱乐出现问题工作间呢': '娱乐出现问题工作间呢',
+                        '算是新版本': '算是新版本',
+                        '变化的东西无': '变化的东西',
+                        '无不和': '无不和',
+                        '其他的工作才能摆放在一起': '其他的工作才能摆放在一起',
+                        '但是大部分的工作台呢': '但是大部分的工作台呢',
+                        '都没啥问题这里呢': '都没啥问题这里呢',
+                        '推荐两种布局': '推荐两种布局',
+                        '一种是居中一种呢': '一种是居中一种呢',
+                        '放在四周哪一种布局呢': '放在四周哪一种布局呢',
+                        '都行放了机械超频': '都行放了机械超频',
+                        '一可以呢增加': '一可以呢增加',
+                        '可以说是更加舒服': '可以说是更加舒服',
+                        '谒见厅呢也算是老布局了': '谒见厅呢也算是老布局了',
+                        '精致的板的美观度呢': '精致的板的美观度呢',
+                        '极其夸张因此呢里': '极其夸张因此呢里',
+                        '外面呢就让': '外面呢就让',
+                        '该喝喝这个布局呢': '该喝喝这个布局呢'
+                    };
+                    
+                    let result = text;
+                    Object.entries(commonErrors).forEach(([error, correction]) => {
+                        result = result.replace(new RegExp(error, 'g'), correction);
+                    });
+                    
+                    return result;
+                };
+                
+                // 语义文本处理 - 通用智能优化
+                const semanticTextProcessing = (text) => {
+                    // 1. 去除重复词汇和短语
+                    let processedText = removeDuplicateWords(text);
+                    
+                    // 2. 修复断句错误
+                    processedText = fixBrokenSentences(processedText);
+                    
+                    // 3. 智能文本重构
+                    processedText = intelligentTextRestructuring(processedText);
+                    
+                    // 4. 上下文关联修复
+                    processedText = contextAwareFix(processedText);
+                    
+                    // 5. 语义连贯性检查
+                    processedText = semanticCoherenceCheck(processedText);
+                    
+                    // 6. 最终清理
+                    processedText = finalCleanup(processedText);
+                    
+                    return processedText;
+                };
+                
+                // 智能文本去重和重构 - 通用优化
+                const removeDuplicateWords = (text) => {
+                    if (!text || text.length < 2) return text;
+                    
+                    // 1. 基础重复字符清理
+                    let processedText = text.replace(/(.)\1{2,}/g, '$1$1'); // 保留最多2个连续相同字符
+                    
+                    // 2. 智能短语去重
+                    processedText = removeDuplicatePhrases(processedText);
+                    
+                    // 3. 语义重复检测和合并
+                    processedText = mergeSemanticDuplicates(processedText);
+                    
+                    // 4. 上下文重复清理
+                    processedText = cleanContextualDuplicates(processedText);
+                    
+                    return processedText;
+                };
+                
+                // 智能短语去重
+                const removeDuplicatePhrases = (text) => {
+                    const maxPhraseLength = 6;
+                    let result = text;
+                    
+                    // 从长到短检测重复短语
+                    for (let len = maxPhraseLength; len >= 2; len--) {
+                        const phrases = new Set();
+                        const duplicates = [];
+                        
+                        // 找出所有重复的短语
+                        for (let i = 0; i <= result.length - len; i++) {
+                            const phrase = result.substr(i, len);
+                            if (phrases.has(phrase)) {
+                                duplicates.push(phrase);
+                            } else {
+                                phrases.add(phrase);
+                            }
+                        }
+                        
+                        // 处理重复短语
+                        duplicates.forEach(phrase => {
+                            // 检查是否是合理的重复（如"你好你好"）
+                            const regex = new RegExp(`(${phrase}){2,}`, 'g');
+                            result = result.replace(regex, phrase);
+                        });
+                    }
+                    
+                    return result;
+                };
+                
+                // 语义重复检测和合并
+                const mergeSemanticDuplicates = (text) => {
+                    // 检测语义相似的重复内容
+                    const semanticPatterns = [
+                        // 常见语义重复模式
+                        { pattern: /(.*?)(呢|啊|吧|呀|哦)\1/g, replacement: '$1$2' },
+                        { pattern: /(.*?)(的|地|得)\1/g, replacement: '$1$2' },
+                        { pattern: /(.*?)(是|有|在|为)\1/g, replacement: '$1$2' },
+                        { pattern: /(.*?)(说|看|听|想)\1/g, replacement: '$1$2' },
+                        { pattern: /(.*?)(可以|能够|应该|必须)\1/g, replacement: '$1$2' },
+                        { pattern: /(.*?)(非常|特别|十分|极其)\1/g, replacement: '$1$2' },
+                        { pattern: /(.*?)(完全|全部|所有|每个)\1/g, replacement: '$1$2' }
+                    ];
+                    
+                    let result = text;
+                    semanticPatterns.forEach(({ pattern, replacement }) => {
+                        result = result.replace(pattern, replacement);
+                    });
+                    
+                    return result;
+                };
+                
+                // 上下文重复清理
+                const cleanContextualDuplicates = (text) => {
+                    // 基于上下文历史清理重复
+                    if (bufferStatus.contextHistory.length === 0) return text;
+                    
+                    const recentContext = bufferStatus.contextHistory.slice(-3).join('');
+                    const words = text.split(/[\s，。！？；：]/);
+                    const contextWords = recentContext.split(/[\s，。！？；：]/);
+                    
+                    // 移除在上下文中已经出现过的重复词汇
+                    const filteredWords = words.filter((word, index) => {
+                        if (word.length < 2) return true;
+                        
+                        // 检查是否在最近的上下文中出现过
+                        const recentOccurrence = contextWords.some(contextWord => 
+                            contextWord.includes(word) || word.includes(contextWord)
+                        );
+                        
+                        // 如果最近出现过，且当前词很短，则跳过
+                        if (recentOccurrence && word.length < 4) {
+                            return false;
+                        }
+                        
+                        return true;
+                    });
+                    
+                    return filteredWords.join('');
+                };
+                
+                // 智能文本重构
+                const intelligentTextRestructuring = (text) => {
+                    if (!text || text.length < 3) return text;
+                    
+                    // 1. 句子结构优化
+                    let processedText = optimizeSentenceStructure(text);
+                    
+                    // 2. 词汇连接优化
+                    processedText = optimizeWordConnections(processedText);
+                    
+                    // 3. 语义流畅性优化
+                    processedText = optimizeSemanticFlow(processedText);
+                    
+                    return processedText;
+                };
+                
+                // 句子结构优化
+                const optimizeSentenceStructure = (text) => {
+                    // 修复常见的句子结构问题
+                    const structureFixes = [
+                        // 修复被分割的句子
+                        { pattern: /([。！？；：])\s*([我你他她它我们你们他们])/g, replacement: '$1\n$2' },
+                        // 修复重复的标点
+                        { pattern: /([。！？；：])\1+/g, replacement: '$1' },
+                        // 修复缺少标点的句子
+                        { pattern: /([^。！？；：])\s*([我你他她它我们你们他们][^。！？；：]{10,})/g, replacement: '$1。$2' }
+                    ];
+                    
+                    let result = text;
+                    structureFixes.forEach(({ pattern, replacement }) => {
+                        result = result.replace(pattern, replacement);
+                    });
+                    
+                    return result;
+                };
+                
+                // 词汇连接优化
+                const optimizeWordConnections = (text) => {
+                    // 修复词汇之间的连接问题
+                    const connectionFixes = [
+                        // 修复被错误分割的词汇
+                        { pattern: /(\w)\s+(\w)/g, replacement: '$1$2' },
+                        // 修复中文词汇间的空格
+                        { pattern: /([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g, replacement: '$1$2' },
+                        // 修复数字和单位的分割
+                        { pattern: /(\d+)\s+([个只条张本台部])/g, replacement: '$1$2' }
+                    ];
+                    
+                    let result = text;
+                    connectionFixes.forEach(({ pattern, replacement }) => {
+                        result = result.replace(pattern, replacement);
+                    });
+                    
+                    return result;
+                };
+                
+                // 语义流畅性优化
+                const optimizeSemanticFlow = (text) => {
+                    // 基于上下文优化语义流畅性
+                    if (bufferStatus.contextHistory.length === 0) return text;
+                    
+                    const recentContext = bufferStatus.contextHistory.slice(-2).join('');
+                    const currentWords = text.split(/[\s，。！？；：]/);
+                    
+                    // 检查语义连贯性
+                    const optimizedWords = currentWords.map((word, index) => {
+                        if (word.length < 2) return word;
+                        
+                        // 检查是否与上下文语义连贯
+                        const contextRelevance = calculateContextRelevance(word, recentContext);
+                        
+                        // 如果语义相关性很低，可能是识别错误
+                        if (contextRelevance < 0.3 && word.length < 4) {
+                            return ''; // 移除可能的错误词汇
+                        }
+                        
+                        return word;
+                    });
+                    
+                    return optimizedWords.filter(word => word.length > 0).join('');
+                };
+                
+                // 计算词汇与上下文的相关性
+                const calculateContextRelevance = (word, context) => {
+                    if (!context || context.length === 0) return 0.5;
+                    
+                    // 简单的语义相关性计算
+                    const contextWords = context.split(/[\s，。！？；：]/);
+                    const matchingWords = contextWords.filter(contextWord => 
+                        contextWord.includes(word) || word.includes(contextWord)
+                    );
+                    
+                    return matchingWords.length / contextWords.length;
+                };
+                
+                // 最终清理
+                const finalCleanup = (text) => {
+                    if (!text) return text;
+                    
+                    // 1. 清理多余的空格和标点
+                    let cleaned = text.replace(/\s+/g, ' ').trim();
+                    cleaned = cleaned.replace(/([。！？；：])\1+/g, '$1');
+                    
+                    // 2. 确保句子完整性
+                    if (!/[。！？；：]$/.test(cleaned) && cleaned.length > 10) {
+                        cleaned += '。';
+                    }
+                    
+                    // 3. 移除孤立的短词汇
+                    const words = cleaned.split(/[\s，。！？；：]/);
+                    const filteredWords = words.filter(word => {
+                        if (word.length < 2) return false;
+                        if (word.length === 2 && /[的了在是有为到说看听想]/g.test(word)) return true;
+                        return word.length >= 2;
+                    });
+                    
+                    return filteredWords.join('').replace(/([。！？；：])([^。！？；：])/g, '$1\n$2');
+                };
+                
+                // 获取语气分析显示
+                const getToneAnalysisDisplay = () => {
+                    if (bufferStatus.toneBuffer.length === 0) return '无语气数据';
+                    
+                    const latestTone = bufferStatus.toneBuffer[bufferStatus.toneBuffer.length - 1];
+                    const toneFeatures = [];
+                    
+                    if (latestTone.hasQuestion) toneFeatures.push('疑问');
+                    if (latestTone.hasExclamation) toneFeatures.push('感叹');
+                    if (latestTone.hasPause) toneFeatures.push('停顿');
+                    if (latestTone.hasEmphasis) toneFeatures.push('强调');
+                    if (latestTone.sentenceEnding) toneFeatures.push('句末');
+                    if (latestTone.toneChange) toneFeatures.push('语调变化');
+                    
+                    return toneFeatures.length > 0 ? toneFeatures.join(', ') : '中性语气';
+                };
+                
+                // 修复断句错误 - 增强版
+                const fixBrokenSentences = (text) => {
+                    // 修复被错误分割的词汇
+                    const commonBrokenWords = {
+                        '的的': '的',
+                        '是是': '是',
+                        '在在': '在',
+                        '有有': '有',
+                        '不不': '不',
+                        '为为': '为',
+                        '到到': '到',
+                        '说说': '说',
+                        '看看': '看',
+                        '听听': '听',
+                        '想想': '想',
+                        '觉得觉得': '觉得',
+                        '认为认为': '认为',
+                        '可以可以': '可以',
+                        '能够能够': '能够',
+                        '应该应该': '应该',
+                        '必须必须': '必须',
+                        '一定一定': '一定',
+                        '肯定肯定': '肯定',
+                        '当然当然': '当然',
+                        '确实确实': '确实',
+                        '水培水培': '水培',
+                        '货架货架': '货架',
+                        '模组模组': '模组',
+                        '存储存储': '存储',
+                        '仓库仓库': '仓库',
+                        '自动自动': '自动',
+                        '效率效率': '效率',
+                        '方便方便': '方便',
+                        '全新全新': '全新',
+                        '大型大型': '大型',
+                        '容量容量': '容量',
+                        '内容内容': '内容',
+                        '丰富丰富': '丰富',
+                        '工业工业': '工业',
+                        '联动画联动画': '联动画',
+                        '太阳灯太阳灯': '太阳灯',
+                        '二四小时二四小时': '24小时',
+                        '结算结算': '结算'
+                    };
+                    
+                    let fixedText = text;
+                    Object.entries(commonBrokenWords).forEach(([broken, correct]) => {
+                        fixedText = fixedText.replace(new RegExp(broken, 'g'), correct);
+                    });
+                    
+                    return fixedText;
+                };
+                
+                // 上下文关联修复
+                const contextAwareFix = (text) => {
+                    if (bufferStatus.contextHistory.length === 0) return text;
+                    
+                    // 获取最近的上下文
+                    const recentContext = bufferStatus.contextHistory.slice(-3).join('');
+                    
+                    // 基于上下文修复常见的语义错误
+                    const contextFixes = {
+                        '的': (context) => context.includes('形容词') ? '得' : '的',
+                        '得': (context) => context.includes('动词') ? '得' : '的',
+                        '地': (context) => context.includes('副词') ? '地' : '的',
+                        '在': (context) => context.includes('地点') ? '在' : '再',
+                        '再': (context) => context.includes('重复') ? '再' : '在'
+                    };
+                    
+                    let fixedText = text;
+                    Object.entries(contextFixes).forEach(([word, fixRule]) => {
+                        const regex = new RegExp(word, 'g');
+                        fixedText = fixedText.replace(regex, (match) => fixRule(recentContext));
+                    });
+                    
+                    return fixedText;
+                };
+                
+                // 语义连贯性检查
+                const semanticCoherenceCheck = (text) => {
+                    // 检查句子的语义连贯性
+                    const sentences = text.split(/[。！？；：]/);
+                    
+                    return sentences.map(sentence => {
+                        if (sentence.trim().length < 2) return sentence;
+                        
+                        // 检查句子是否完整
+                        if (!isCompleteSentence(sentence)) {
+                            // 尝试从上下文中补全
+                            return completeSentence(sentence);
+                        }
+                        
+                        return sentence;
+                    }).join('。');
+                };
+                
+                // 检查句子是否完整
+                const isCompleteSentence = (sentence) => {
+                    // 简单的完整性检查
+                    const hasSubject = /[我你他她它我们你们他们她们它们这那]/;
+                    const hasVerb = /[是的有在说看听想觉得认为]/;
+                    const hasEnding = /[。！？；：]$/;
+                    
+                    return hasSubject.test(sentence) && hasVerb.test(sentence) && sentence.length > 3;
+                };
+                
+                // 补全句子
+                const completeSentence = (sentence) => {
+                    if (bufferStatus.contextHistory.length === 0) return sentence;
+                    
+                    // 从上下文中寻找可能的补全
+                    const lastSentence = bufferStatus.contextHistory[bufferStatus.contextHistory.length - 1];
+                    
+                    // 简单的补全逻辑
+                    if (sentence.length < 3) {
+                        return lastSentence + sentence;
+                    }
+                    
+                    return sentence;
+                };
+                
+                // 高级智能断句 - 语气感知版本
+                const advancedSentenceSplit = (text) => {
+                    // 1. 基于语气和标点的智能分割
+                    const sentences = splitByToneAndPunctuation(text);
+                    
+                    // 2. 智能合并和分割
+                    const processedSentences = [];
+                    let currentSentence = '';
+                    
+                    for (let i = 0; i < sentences.length; i++) {
+                        const sentence = sentences[i].trim();
+                        if (!sentence) continue;
+                        
+                        // 检查是否需要合并到当前句子
+                        if (shouldMergeWithCurrent(currentSentence, sentence)) {
+                            currentSentence += sentence;
+                        } else {
+                            // 保存当前句子并开始新句子
+                            if (currentSentence) {
+                                processedSentences.push(currentSentence);
+                            }
+                            currentSentence = sentence;
+                        }
+                    }
+                    
+                    // 添加最后一个句子
+                    if (currentSentence) {
+                        processedSentences.push(currentSentence);
+                    }
+                    
+                    // 3. 后处理：确保句子完整性
+                    return processedSentences
+                        .map(sentence => ensureSentenceCompleteness(sentence))
+                        .filter(sentence => sentence.trim().length > 0);
+                };
+                
+                // 基于语气和标点的智能分割
+                const splitByToneAndPunctuation = (text) => {
+                    if (!text) return [];
+                    
+                    // 1. 基于语气词的分割
+                    let sentences = text.split(/([呢啊吧呀哦哎])/);
+                    
+                    // 2. 基于标点符号的分割
+                    sentences = sentences.flatMap(sentence => sentence.split(/([。！？；：.!?;:,，;；])/));
+                    
+                    // 3. 基于停顿语气词的分割
+                    sentences = sentences.flatMap(sentence => sentence.split(/([那么然后接着另外还有])/));
+                    
+                    // 4. 智能重组句子
+                    const processedSentences = [];
+                    let currentSentence = '';
+                    
+                    for (let i = 0; i < sentences.length; i++) {
+                        const part = sentences[i];
+                        
+                        // 如果是语气词或标点，添加到当前句子
+                        if (/[呢啊吧呀哦哎。！？；：.!?;:,，;；]/.test(part)) {
+                            currentSentence += part;
+                            
+                            // 如果是句子结束标点，完成当前句子
+                            if (/[。！？.!?]/.test(part)) {
+                                if (currentSentence.trim()) {
+                                    processedSentences.push(currentSentence.trim());
+                                }
+                                currentSentence = '';
+                            }
+                        } else if (/[那么然后接着另外还有]/.test(part)) {
+                            // 如果是转折词，完成当前句子并开始新句子
+                            if (currentSentence.trim()) {
+                                processedSentences.push(currentSentence.trim());
+                            }
+                            currentSentence = part;
+                        } else {
+                            // 普通文本内容
+                            currentSentence += part;
+                        }
+                    }
+                    
+                    // 添加最后一个句子
+                    if (currentSentence.trim()) {
+                        processedSentences.push(currentSentence.trim());
+                    }
+                    
+                    return processedSentences.filter(sentence => sentence.length > 0);
+                };
+                
+                // 判断是否应该合并句子 - 语气感知版本
+                const shouldMergeWithCurrent = (current, next) => {
+                    // 如果当前句子为空，不合并
+                    if (!current) return false;
+                    
+                    // 如果下一个片段太短，可能是被错误分割的
+                    if (next.length < 3) return true;
+                    
+                    // 检查是否是完整的句子结构
+                    const hasCompleteStructure = /[我你他她它我们你们他们她们它们这那].*[是的有在说看听想觉得认为]/;
+                    if (hasCompleteStructure.test(current)) return false;
+                    
+                    // 检查是否有明显的句子结束标志
+                    const hasEnding = /[。！？；：.!?;:]$/;
+                    if (hasEnding.test(current)) return false;
+                    
+                    // 检查语气连贯性
+                    if (hasToneContinuity(current, next)) return true;
+                    
+                    // 检查语义连贯性
+                    if (hasSemanticContinuity(current, next)) return true;
+                    
+                    return false;
+                };
+                
+                // 检查语气连贯性
+                const hasToneContinuity = (current, next) => {
+                    // 如果当前句子以语气词结尾，且下一个片段不是新的语气词，则合并
+                    const currentEndsWithTone = /[呢啊吧呀哦哎]$/.test(current);
+                    const nextStartsWithTone = /^[呢啊吧呀哦哎]/.test(next);
+                    
+                    if (currentEndsWithTone && !nextStartsWithTone) return true;
+                    
+                    // 如果当前句子以停顿结尾，且下一个片段很短，则合并
+                    const currentEndsWithPause = /[，,；;]$/.test(current);
+                    if (currentEndsWithPause && next.length < 5) return true;
+                    
+                    return false;
+                };
+                
+                // 检查语义连贯性
+                const hasSemanticContinuity = (current, next) => {
+                    // 检查是否是语义上的连续表达
+                    const semanticConnectors = [
+                        /[那么然后接着另外还有]$/,  // 转折词
+                        /[的得地]$/,  // 助词
+                        /[可以能够应该必须]$/,  // 情态动词
+                        /[非常特别十分极其]$/  // 程度副词
+                    ];
+                    
+                    return semanticConnectors.some(pattern => pattern.test(current));
+                };
+                
+                // 确保句子完整性
+                const ensureSentenceCompleteness = (sentence) => {
+                    // 如果句子太短，尝试从上下文中补全
+                    if (sentence.length < 5 && bufferStatus.contextHistory.length > 0) {
+                        const lastContext = bufferStatus.contextHistory[bufferStatus.contextHistory.length - 1];
+                        // 简单的补全逻辑
+                        if (lastContext.endsWith(sentence)) {
+                            return lastContext;
+                        }
+                    }
+                    
+                    return sentence;
+                };
+                
+                // 改进的错别字检测和纠正
+                const checkAndCorrectText = (text) => {
+                    if (!text || text.length < 2) return text;
+                    
+                    // 通用常见错别字映射表
+                    const commonErrors = {
+                        // 常见同音字错误
+                        '的': '得',
+                        '得': '的',
+                        '地': '的',
+                        '在': '再',
+                        '再': '在',
+                        '做': '作',
+                        '作': '做',
+                        '和': '合',
+                        '合': '和',
+                        '是': '事',
+                        '事': '是',
+                        '有': '又',
+                        '又': '有',
+                        '不': '部',
+                        '部': '不',
+                        '为': '位',
+                        '位': '为',
+                        '到': '道',
+                        '道': '到',
+                        '说': '话',
+                        '话': '说',
+                        '看': '见',
+                        '见': '看',
+                        '听': '闻',
+                        '闻': '听',
+                        '来': '来',
+                        '去': '去',
+                        '上': '上',
+                        '下': '下',
+                        '左': '左',
+                        '右': '右',
+                        '前': '前',
+                        '后': '后',
+                        '里': '里',
+                        '外': '外',
+                        '内': '内',
+                        '中': '中',
+                        '大': '大',
+                        '小': '小',
+                        '高': '高',
+                        '低': '低',
+                        '长': '长',
+                        '短': '短',
+                        '快': '快',
+                        '慢': '慢',
+                        '好': '好',
+                        '坏': '坏',
+                        '新': '新',
+                        '旧': '旧',
+                        '老': '老',
+                        '少': '少',
+                        '多': '多',
+                        '少': '少',
+                        '红': '红',
+                        '绿': '绿',
+                        '蓝': '蓝',
+                        '白': '白',
+                        '黑': '黑',
+                        '黄': '黄',
+                        '紫': '紫',
+                        '灰': '灰',
+                        
+                        // 常见词汇错误
+                        '这个': '这个',
+                        '那个': '那个',
+                        '什么': '什么',
+                        '怎么': '怎么',
+                        '为什么': '为什么',
+                        '因为': '因为',
+                        '所以': '所以',
+                        '但是': '但是',
+                        '而且': '而且',
+                        '或者': '或者',
+                        '如果': '如果',
+                        '虽然': '虽然',
+                        '然后': '然后',
+                        '接着': '接着',
+                        '另外': '另外',
+                        '还有': '还有',
+                        '只是': '只是',
+                        '不过': '不过',
+                        '其实': '其实',
+                        '当然': '当然',
+                        '确实': '确实',
+                        '肯定': '肯定',
+                        '应该': '应该',
+                        '可能': '可能',
+                        '大概': '大概',
+                        '也许': '也许',
+                        '差不多': '差不多',
+                        '基本上': '基本上',
+                        '一般来说': '一般来说',
+                        '总的来说': '总的来说',
+                        
+                        // 常见动作词汇
+                        '走': '走',
+                        '跑': '跑',
+                        '跳': '跳',
+                        '坐': '坐',
+                        '站': '站',
+                        '躺': '躺',
+                        '睡': '睡',
+                        '醒': '醒',
+                        '吃': '吃',
+                        '喝': '喝',
+                        '玩': '玩',
+                        '学': '学',
+                        '教': '教',
+                        '写': '写',
+                        '读': '读',
+                        '画': '画',
+                        '唱': '唱',
+                        '跳': '跳',
+                        '笑': '笑',
+                        '哭': '哭',
+                        '想': '想',
+                        '说': '说',
+                        '听': '听',
+                        '看': '看',
+                        '买': '买',
+                        '卖': '卖',
+                        '给': '给',
+                        '拿': '拿',
+                        '放': '放',
+                        '开': '开',
+                        '关': '关',
+                        '进': '进',
+                        '出': '出',
+                        '上': '上',
+                        '下': '下',
+                        '来': '来',
+                        '去': '去',
+                        
+                        // 常见时间词汇
+                        '今天': '今天',
+                        '明天': '明天',
+                        '昨天': '昨天',
+                        '现在': '现在',
+                        '刚才': '刚才',
+                        '马上': '马上',
+                        '立刻': '立刻',
+                        '很快': '很快',
+                        '慢慢': '慢慢',
+                        '一直': '一直',
+                        '经常': '经常',
+                        '有时': '有时',
+                        '偶尔': '偶尔',
+                        '从来': '从来',
+                        '已经': '已经',
+                        '正在': '正在',
+                        '将要': '将要',
+                        '准备': '准备',
+                        '打算': '打算',
+                        '计划': '计划',
+                        
+                        // 常见数量词汇
+                        '一个': '一个',
+                        '两个': '两个',
+                        '三个': '三个',
+                        '很多': '很多',
+                        '一些': '一些',
+                        '几个': '几个',
+                        '全部': '全部',
+                        '部分': '部分',
+                        '一半': '一半',
+                        '三分之一': '三分之一',
+                        '四分之一': '四分之一',
+                        '第一': '第一',
+                        '第二': '第二',
+                        '第三': '第三',
+                        '最后': '最后',
+                        '开始': '开始',
+                        '结束': '结束',
+                        '中间': '中间',
+                        '旁边': '旁边',
+                        '附近': '附近',
+                        '远处': '远处',
+                        
+                        // 常见语气词
+                        '呢': '呢',
+                        '啊': '啊',
+                        '吧': '吧',
+                        '呀': '呀',
+                        '哦': '哦',
+                        '哎': '哎',
+                        '嗯': '嗯',
+                        '哼': '哼',
+                        '唉': '唉',
+                        '哇': '哇',
+                        '哈': '哈',
+                        '嘿': '嘿',
+                        '喂': '喂',
+                        '嗨': '嗨',
+                        '再见': '再见',
+                        '谢谢': '谢谢',
+                        '对不起': '对不起',
+                        '没关系': '没关系',
+                        '不客气': '不客气',
+                        '请': '请',
+                        '麻烦': '麻烦',
+                        '打扰': '打扰',
+                        
+                        // 常见连接词
+                        '和': '和',
+                        '与': '与',
+                        '或': '或',
+                        '但': '但',
+                        '而': '而',
+                        '却': '却',
+                        '然而': '然而',
+                        '不过': '不过',
+                        '只是': '只是',
+                        '除了': '除了',
+                        '包括': '包括',
+                        '除了': '除了',
+                        '关于': '关于',
+                        '对于': '对于',
+                        '由于': '由于',
+                        '因此': '因此',
+                        '所以': '所以',
+                        '因为': '因为',
+                        '如果': '如果',
+                        '假如': '假如',
+                        '假设': '假设',
+                        '虽然': '虽然',
+                        '尽管': '尽管',
+                        '无论': '无论',
+                        '不管': '不管',
+                        '只要': '只要',
+                        '只有': '只有',
+                        '除非': '除非',
+                        '除了': '除了',
+                        '除了': '除了'
+                    };
+                    
+                    let correctedText = text;
+                    const corrections = [];
+                    
+                    // 改进的错误处理逻辑
+                    
+                    // 1. 先处理明显的多字符错误（优先级最高）
+                    Object.entries(commonErrors).forEach(([error, correction]) => {
+                        if (error.length > 1 && correctedText.includes(error)) {
+                            const regex = new RegExp(error, 'g');
+                            const matches = correctedText.match(regex);
+                            if (matches) {
+                                corrections.push({
+                                    original: error,
+                                    suggested: correction,
+                                    count: matches.length,
+                                    type: 'multi-char'
+                                });
+                                correctedText = correctedText.replace(regex, correction);
+                            }
+                        }
+                    });
+                    
+                    // 2. 处理上下文相关的错误
+                    const contextualErrors = processContextualErrors(correctedText);
+                    contextualErrors.forEach(error => {
+                        corrections.push(error);
+                        correctedText = correctedText.replace(error.original, error.suggested);
+                    });
+                    
+                    // 3. 最后处理单字符错误（最谨慎）
+                    for (let i = 0; i < correctedText.length; i++) {
+                        const char = correctedText[i];
+                        if (commonErrors[char] && commonErrors[char].length === 1) {
+                            const context = getContext(correctedText, i);
+                            const shouldCorrect = analyzeContext(context, char);
+                            
+                            if (shouldCorrect) {
+                                corrections.push({
+                                    original: char,
+                                    suggested: commonErrors[char],
+                                    position: i,
+                                    context: context,
+                                    type: 'single-char'
+                                });
+                                // 直接替换字符
+                                correctedText = correctedText.substring(0, i) + commonErrors[char] + correctedText.substring(i + 1);
+                            }
+                        }
+                    }
+                    
+                    // 更新纠正建议列表
+                    if (corrections.length > 0) {
+                        corrections.value = corrections.slice(0, 10); // 显示更多建议
+                        console.log('错别字纠正:', {
+                            original: text,
+                            corrected: correctedText,
+                            corrections: corrections
+                        });
+                    }
+                    
+                    return correctedText;
+                };
+                
+                // 获取字符上下文
+                const getContext = (text, position) => {
+                    const start = Math.max(0, position - 2);
+                    const end = Math.min(text.length, position + 3);
+                    return text.substring(start, end);
+                };
+                
+                // 处理上下文相关的错误
+                const processContextualErrors = (text) => {
+                    const contextualErrors = [];
+                    
+                    // 检查常见的上下文错误模式
+                    const contextualPatterns = [
+                        // 重复字符错误
+                        { pattern: /([的得地])\1+/g, replacement: '$1' },
+                        { pattern: /([是事])\1+/g, replacement: '$1' },
+                        { pattern: /([在再])\1+/g, replacement: '$1' },
+                        { pattern: /([和合])\1+/g, replacement: '$1' },
+                        { pattern: /([做作])\1+/g, replacement: '$1' },
+                        { pattern: /([有又])\1+/g, replacement: '$1' },
+                        { pattern: /([不部])\1+/g, replacement: '$1' },
+                        { pattern: /([为位])\1+/g, replacement: '$1' },
+                        { pattern: /([到道])\1+/g, replacement: '$1' },
+                        { pattern: /([说话])\1+/g, replacement: '$1' },
+                        { pattern: /([看见])\1+/g, replacement: '$1' },
+                        { pattern: /([听闻])\1+/g, replacement: '$1' },
+                        
+                        // 常见的不完整句子
+                        { pattern: /好，我喜$/g, replacement: '好，我喜欢' },
+                        { pattern: /我觉$/g, replacement: '我觉得' },
+                        { pattern: /我认为$/g, replacement: '我认为' },
+                        { pattern: /我想$/g, replacement: '我想' },
+                        { pattern: /我觉得$/g, replacement: '我觉得' },
+                        { pattern: /我认为$/g, replacement: '我认为' },
+                        { pattern: /我想$/g, replacement: '我想' },
+                        { pattern: /我觉得$/g, replacement: '我觉得' },
+                        { pattern: /我认为$/g, replacement: '我认为' },
+                        { pattern: /我想$/g, replacement: '我想' },
+                        
+                        // 常见的语气词错误
+                        { pattern: /呢呢/g, replacement: '呢' },
+                        { pattern: /啊啊/g, replacement: '啊' },
+                        { pattern: /吧吧/g, replacement: '吧' },
+                        { pattern: /呀呀/g, replacement: '呀' },
+                        { pattern: /哦哦/g, replacement: '哦' },
+                        { pattern: /哎哎/g, replacement: '哎' },
+                        { pattern: /嗯嗯/g, replacement: '嗯' },
+                        { pattern: /哼哼/g, replacement: '哼' },
+                        { pattern: /唉唉/g, replacement: '唉' },
+                        { pattern: /哇哇/g, replacement: '哇' },
+                        { pattern: /哈哈/g, replacement: '哈' },
+                        { pattern: /嘿嘿/g, replacement: '嘿' },
+                        
+                        // 常见的连接词错误
+                        { pattern: /和和/g, replacement: '和' },
+                        { pattern: /与与/g, replacement: '与' },
+                        { pattern: /或或/g, replacement: '或' },
+                        { pattern: /但但/g, replacement: '但' },
+                        { pattern: /而而/g, replacement: '而' },
+                        { pattern: /却却/g, replacement: '却' },
+                        { pattern: /然而然而/g, replacement: '然而' },
+                        { pattern: /不过不过/g, replacement: '不过' },
+                        { pattern: /只是只是/g, replacement: '只是' },
+                        { pattern: /除了除了/g, replacement: '除了' },
+                        { pattern: /包括包括/g, replacement: '包括' },
+                        
+                        // 常见的时间词错误
+                        { pattern: /今天今天/g, replacement: '今天' },
+                        { pattern: /明天明天/g, replacement: '明天' },
+                        { pattern: /昨天昨天/g, replacement: '昨天' },
+                        { pattern: /现在现在/g, replacement: '现在' },
+                        { pattern: /刚才刚才/g, replacement: '刚才' },
+                        { pattern: /马上马上/g, replacement: '马上' },
+                        { pattern: /立刻立刻/g, replacement: '立刻' },
+                        { pattern: /很快很快/g, replacement: '很快' },
+                        { pattern: /慢慢慢慢/g, replacement: '慢慢' },
+                        { pattern: /一直一直/g, replacement: '一直' },
+                        { pattern: /经常经常/g, replacement: '经常' },
+                        { pattern: /有时有时/g, replacement: '有时' },
+                        { pattern: /偶尔偶尔/g, replacement: '偶尔' },
+                        { pattern: /从来从来/g, replacement: '从来' },
+                        { pattern: /已经已经/g, replacement: '已经' },
+                        { pattern: /正在正在/g, replacement: '正在' },
+                        { pattern: /将要将要/g, replacement: '将要' },
+                        { pattern: /准备准备/g, replacement: '准备' },
+                        { pattern: /打算打算/g, replacement: '打算' },
+                        { pattern: /计划计划/g, replacement: '计划' },
+                        
+                        // 常见的数量词错误
+                        { pattern: /一个一个/g, replacement: '一个' },
+                        { pattern: /两个两个/g, replacement: '两个' },
+                        { pattern: /三个三个/g, replacement: '三个' },
+                        { pattern: /很多很多/g, replacement: '很多' },
+                        { pattern: /一些一些/g, replacement: '一些' },
+                        { pattern: /几个几个/g, replacement: '几个' },
+                        { pattern: /全部全部/g, replacement: '全部' },
+                        { pattern: /部分部分/g, replacement: '部分' },
+                        { pattern: /一半一半/g, replacement: '一半' },
+                        { pattern: /第一第一/g, replacement: '第一' },
+                        { pattern: /第二第二/g, replacement: '第二' },
+                        { pattern: /第三第三/g, replacement: '第三' },
+                        { pattern: /最后最后/g, replacement: '最后' },
+                        { pattern: /开始开始/g, replacement: '开始' },
+                        { pattern: /结束结束/g, replacement: '结束' },
+                        { pattern: /中间中间/g, replacement: '中间' },
+                        { pattern: /旁边旁边/g, replacement: '旁边' },
+                        { pattern: /附近附近/g, replacement: '附近' },
+                        { pattern: /远处远处/g, replacement: '远处' }
+                    ];
+                    
+                    contextualPatterns.forEach(({ pattern, replacement }) => {
+                        const matches = text.match(pattern);
+                        if (matches) {
+                            contextualErrors.push({
+                                original: matches[0],
+                                suggested: text.replace(pattern, replacement),
+                                type: 'contextual',
+                                pattern: pattern.source
+                            });
+                        }
+                    });
+                    
+                    return contextualErrors;
+                };
+                
+                // 改进的上下文分析
+                const analyzeContext = (context, char) => {
+                    // 更智能的上下文分析
+                    const contextWords = context.split(/[\s，。！？；：]/);
+                    
+                    // 根据字符类型和上下文进行判断
+                    switch (char) {
+                        case '的':
+                            // 检查前面是否有形容词或名词
+                            const beforeDe = context.substring(0, context.indexOf(char));
+                            if (beforeDe.match(/[好美大高快慢新旧红绿蓝白黑]/)) {
+                                return false; // 形容词+的，正确，不需要纠正
+                            }
+                            // 检查是否是"的"的误用
+                            if (beforeDe.match(/[说看听走跑吃喝玩]/)) {
+                                return true; // 动词+的，应该改为"得"
+                            }
+                            return false;
+                            
+                        case '得':
+                            // 检查前面是否有动词
+                            const beforeDe2 = context.substring(0, context.indexOf(char));
+                            if (beforeDe2.match(/[说看听走跑吃喝玩]/)) {
+                                return false; // 动词+得，正确
+                            }
+                            // 检查是否是"得"的误用
+                            if (beforeDe2.match(/[好美大高快慢新旧红绿蓝白黑]/)) {
+                                return true; // 形容词+得，应该改为"的"
+                            }
+                            return false;
+                            
+                        case '地':
+                            // 检查前面是否有形容词
+                            const beforeDi = context.substring(0, context.indexOf(char));
+                            if (beforeDi.match(/[好美大高快慢新旧红绿蓝白黑]/)) {
+                                return false; // 形容词+地，正确
+                            }
+                            return false;
+                            
+                        case '在':
+                            // 检查后面是否有地点或时间
+                            const afterZai = context.substring(context.indexOf(char) + 1);
+                            if (afterZai.match(/[家里外面上面下面前面后面]/)) {
+                                return false; // 在+地点，正确
+                            }
+                            // 检查是否是"在"的误用
+                            if (afterZai.match(/[说一次看一遍试一下]/)) {
+                                return true; // 表示重复，应该改为"再"
+                            }
+                            return false;
+                            
+                        case '再':
+                            // 检查是否表示重复
+                            const afterZai2 = context.substring(context.indexOf(char) + 1);
+                            if (afterZai2.match(/[说一次看一遍试一下]/)) {
+                                return false; // 再+动作，正确
+                            }
+                            // 检查是否是"再"的误用
+                            if (afterZai2.match(/[家里外面上面下面前面后面]/)) {
+                                return true; // 表示地点，应该改为"在"
+                            }
+                            return false;
+                            
+                        case '是':
+                            // 检查是否是"是"的误用
+                            const beforeShi = context.substring(0, context.indexOf(char));
+                            if (beforeShi.match(/[做干搞弄]/)) {
+                                return true; // 应该是"事"
+                            }
+                            return false;
+                            
+                        case '事':
+                            // 检查是否是"事"的误用
+                            const beforeShi2 = context.substring(0, context.indexOf(char));
+                            if (beforeShi2.match(/[我你他她它我们你们他们]/)) {
+                                return true; // 应该是"是"
+                            }
+                            return false;
+                            
+                        default:
+                            // 对于其他字符，使用更保守的策略
+                            return false; // 默认不纠正，避免误纠正
+                    }
+                };
+                
+                // 应用纠正
+                const applyCorrection = (index) => {
+                    const correction = corrections.value[index];
+                    if (correction) {
+                        // 在实际应用中，这里应该更新transcriptText中的对应字符
+                        // 为了简化，这里只是移除这个纠正建议
+                        corrections.value.splice(index, 1);
+                        ElMessage.success(`已应用纠正: ${correction.original} → ${correction.suggested}`);
+                    }
+                };
+                
+                // 初始化语音识别
+                const initSpeechRecognition = () => {
+                    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                        try {
+                            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                            recognition.value = new SpeechRecognition();
+                            
+                            // 基础配置（必需属性）
+                            recognition.value.lang = settings.language;
+                            recognition.value.continuous = settings.continuousMode;
+                            recognition.value.interimResults = true;
+                            
+                            // 安全设置可选属性
+                            try {
+                                recognition.value.maxAlternatives = settings.maxAlternatives;
+                            } catch (error) {
+                                console.warn('设置maxAlternatives失败，使用默认值:', error.message);
+                                recognition.value.maxAlternatives = 1;
+                            }
+                            
+                            // 根据灵敏度调整识别参数
+                            if (settings.recognitionSensitivity < 0.5) {
+                                // 低灵敏度模式：更保守的识别
+                                recognition.value.interimResults = false;
+                            } else if (settings.recognitionSensitivity > 0.8) {
+                                // 高灵敏度模式：更敏感的识别
+                                recognition.value.interimResults = true;
+                            }
+                            
+                            console.log('语音识别配置完成:', {
+                                lang: recognition.value.lang,
+                                continuous: recognition.value.continuous,
+                                interimResults: recognition.value.interimResults,
+                                maxAlternatives: recognition.value.maxAlternatives
+                            });
+
+                            recognition.value.onstart = () => {
+                                console.log('语音识别已开始');
+                            };
+
+                            recognition.value.onresult = (event) => {
+                                if (settings.smartBuffer) {
+                                    // 使用智能缓冲模式
+                                    handleBufferedRecognition(event);
+                                } else {
+                                    // 传统模式
+                                    handleTraditionalRecognition(event);
+                                }
+                            };
+
+                            recognition.value.onerror = (event) => {
+                                console.error('语音识别错误:', event.error);
+                                
+                                // 根据错误类型处理，减少弹窗干扰
+                                switch (event.error) {
+                                    case 'not-allowed':
+                                        console.log('麦克风权限被拒绝，尝试静默重连...');
+                                        // 权限被拒绝时，不显示弹窗，静默处理
+                                        break;
+                                    case 'no-speech':
+                                        console.log('未检测到语音，继续监听...');
+                                        // 无语音时继续运行，不显示弹窗
+                                        break;
+                                    case 'audio-capture':
+                                        console.log('音频捕获失败，尝试重新初始化...');
+                                        // 音频捕获失败时重试
+                                        setTimeout(() => {
+                                            if (isRecording.value) {
+                                                initSpeechRecognition();
+                                            }
+                                        }, 2000);
+                                        break;
+                                    case 'network':
+                                        console.log('网络错误 - 云端语音识别服务连接失败');
+                                        // 网络错误时采用更智能的重连策略
+                                        if (reconnectCount.value < 5) {
+                                            // 前5次重连使用递增延迟
+                                            const delay = Math.min(2000 + reconnectCount.value * 1000, 8000);
+                                            console.log(`网络错误重连，延迟${delay}ms`);
+                                            
+                                            // 检查网络状态
+                                            const networkStatus = checkNetworkStatus();
+                                            if (!networkStatus.online) {
+                                                console.log('网络离线，等待网络恢复...');
+                                                ElMessage.warning('网络连接已断开，请检查网络后重试');
+                                                return;
+                                            }
+                                            
+                                            // 网络质量检查
+                                            if (networkStatus.effectiveType === 'slow-2g' || networkStatus.effectiveType === '2g') {
+                                                console.log('网络质量较差，可能影响语音识别');
+                                                ElMessage.warning('网络质量较差，建议使用更稳定的网络连接');
+                                            }
+                                            
+                                            setTimeout(() => {
+                                                if (isRecording.value) {
+                                                    // 尝试重新初始化语音识别
+                                                    console.log('重新初始化语音识别服务...');
+                                                    initSpeechRecognition();
+                                                    setTimeout(() => {
+                                                        if (isRecording.value && recognition.value) {
+                                                            try {
+                                                                recognition.value.start();
+                                                                console.log('语音识别服务重连成功');
+                                                            } catch (error) {
+                                                                console.log('网络重连失败，继续尝试...', error);
+                                                            }
+                                                        }
+                                                    }, 500);
+                                                }
+                                            }, delay);
+                                        } else {
+                                            // 超过5次重连，提供详细建议
+                                            console.log('网络连接不稳定，建议检查网络设置');
+                                            ElMessage.error('语音识别服务连接失败，请检查：\n1. 网络连接是否稳定\n2. 是否能够访问Google/Apple服务\n3. 浏览器是否被防火墙阻止\n4. 尝试刷新页面或重启浏览器');
+                                        }
+                                        break;
+                                    case 'service-not-allowed':
+                                        console.log('语音识别服务不可用，尝试重新初始化...');
+                                        // 服务不可用时重试
+                                        setTimeout(() => {
+                                            if (isRecording.value) {
+                                                initSpeechRecognition();
+                                            }
+                                        }, 5000);
+                                        break;
+                                    default:
+                                        console.log('其他错误:', event.error, '尝试重新连接...');
+                                        // 其他错误时重试
+                                        setTimeout(() => {
+                                            if (isRecording.value) {
+                                                startSpeechRecognition();
+                                            }
+                                        }, 2000);
+                                }
+                            };
+
+                            recognition.value.onend = () => {
+                                console.log('语音识别已结束');
+                                
+                                if (isRecording.value) {
+                                    // 处理最后的缓冲内容
+                                    if (settings.smartBuffer && bufferStatus.isActive) {
+                                        processSpeechBuffer();
+                                    }
+                                    
+                                    // 检查网络状态
+                                    const networkStatus = checkNetworkStatus();
+                                    if (!networkStatus.online) {
+                                        console.log('网络离线，等待网络恢复...');
+                                        return; // 网络离线时不重连
+                                    }
+                                    
+                                    // 自动重连机制
+                                    reconnectCount.value++;
+                                    console.log(`第${reconnectCount.value}次自动重连语音识别...`);
+                                    
+                                    // 智能重连延迟策略
+                                    let reconnectDelay = 1000; // 基础延迟1秒
+                                    
+                                    if (reconnectCount.value <= 3) {
+                                        // 前3次重连使用较短延迟
+                                        reconnectDelay = 1000 + (reconnectCount.value - 1) * 500;
+                                    } else if (reconnectCount.value <= 7) {
+                                        // 4-7次重连使用中等延迟
+                                        reconnectDelay = 3000 + (reconnectCount.value - 4) * 1000;
+                                    } else {
+                                        // 8次以上使用较长延迟
+                                        reconnectDelay = 8000;
+                                    }
+                                    
+                                    // 限制重连次数，避免无限重连
+                                    if (reconnectCount.value < 10) {
+                                        console.log(`⏱️ 重连延迟: ${reconnectDelay}ms`);
+                                        setTimeout(() => {
+                                            if (isRecording.value) {
+                                                try {
+                                                    recognition.value.start();
+                                                } catch (error) {
+                                                    console.error('重新启动语音识别失败:', error);
+                                                    // 重连失败时，尝试重新初始化
+                                                    setTimeout(() => {
+                                                        if (isRecording.value) {
+                                                            initSpeechRecognition();
+                                                        }
+                                                    }, 2000);
+                                                }
+                                            }
+                                        }, reconnectDelay);
+                                    } else {
+                                        console.log('重连次数过多，停止自动重连');
+                                        ElMessage.warning('语音识别连接不稳定，请手动重新开始录制');
+                                        isRecording.value = false;
+                                        reconnectCount.value = 0; // 重置计数器
+                                    }
+                                }
+                            };
+
+                            return true;
+                        } catch (error) {
+                            console.error('初始化语音识别失败:', error);
+                            ElMessage.error('初始化语音识别失败: ' + error.message);
+                            return false;
+                        }
+                    } else {
+                        ElMessage.error('浏览器不支持语音识别功能，请使用Chrome、Edge或Safari浏览器');
+                        return false;
+                    }
+                };
+                
+                // 简化的候选结果选择算法
+                const selectBestCandidate = (result) => {
+                    if (!result || result.length === 0) return null;
+                    
+                    // 简单策略：优先选择第一个结果（通常是置信度最高的）
+                    const firstCandidate = result[0];
+                    if (firstCandidate && firstCandidate.transcript) {
+                        return {
+                            transcript: firstCandidate.transcript,
+                            confidence: firstCandidate.confidence || 0.8,
+                            index: 0
+                        };
+                    }
+                    
+                    // 如果第一个结果无效，尝试其他结果
+                    for (let i = 1; i < result.length; i++) {
+                        const candidate = result[i];
+                        if (candidate && candidate.transcript && candidate.transcript.trim()) {
+                            return {
+                                transcript: candidate.transcript,
+                                confidence: candidate.confidence || 0.8,
+                                index: i
+                            };
+                        }
+                    }
+                    
+                    return null;
+                };
+                
+                // 计算语义连贯性分数
+                const calculateSemanticCoherence = (text) => {
+                    if (!text || text.length < 2) return 0;
+                    
+                    // 简单的语义连贯性检查
+                    const words = text.split(/[\s，。！？；：]/).filter(word => word.length > 0);
+                    if (words.length < 2) return 0.5;
+                    
+                    // 检查是否有常见的语义连接词
+                    const connectors = ['的', '是', '在', '有', '和', '与', '或', '但', '而', '因为', '所以', '如果', '虽然', '但是'];
+                    const hasConnectors = connectors.some(connector => text.includes(connector));
+                    
+                    // 检查句子结构
+                    const hasSubjectVerb = /[我你他她它我们你们他们她们它们][是的有在会能要]/;
+                    const hasProperStructure = hasSubjectVerb.test(text);
+                    
+                    let score = 0.5; // 基础分数
+                    if (hasConnectors) score += 0.2;
+                    if (hasProperStructure) score += 0.2;
+                    if (text.length > 5 && text.length < 50) score += 0.1;
+                    
+                    return Math.min(score, 1.0);
+                };
+                
+                // 实时语音识别质量监控
+                const monitorRecognitionQuality = (event) => {
+                    const qualityMetrics = {
+                        totalResults: event.results.length,
+                        finalResults: 0,
+                        avgConfidence: 0,
+                        lowConfidenceCount: 0,
+                        highConfidenceCount: 0
+                    };
+                    
+                    let totalConfidence = 0;
+                    let confidenceCount = 0;
+                    
+                    for (let i = 0; i < event.results.length; i++) {
+                        const result = event.results[i];
+                        if (result.isFinal) {
+                            qualityMetrics.finalResults++;
+                        }
+                        
+                        for (let j = 0; j < result.length; j++) {
+                            const confidence = result[j].confidence;
+                            if (confidence !== undefined && confidence !== null) {
+                                totalConfidence += confidence;
+                                confidenceCount++;
+                                
+                                if (confidence < 0.5) {
+                                    qualityMetrics.lowConfidenceCount++;
+                                } else if (confidence > 0.8) {
+                                    qualityMetrics.highConfidenceCount++;
+                                }
+                            }
+                        }
+                    }
+                    
+                    qualityMetrics.avgConfidence = confidenceCount > 0 ? totalConfidence / confidenceCount : 0;
+                    
+                    // 输出质量监控信息
+                    console.log('语音识别质量监控:', qualityMetrics);
+                    
+                    // 如果质量较差，给出建议
+                    if (qualityMetrics.avgConfidence < 0.6) {
+                        console.warn('语音识别质量较低，建议：');
+                        console.warn('1. 检查麦克风音量和清晰度');
+                        console.warn('2. 减少环境噪音');
+                        console.warn('3. 调整识别灵敏度设置');
+                        console.warn('4. 尝试增加候选结果数量');
+                    }
+                    
+                    return qualityMetrics;
+                };
+                
+                // 计算长度分数
+                const calculateLengthScore = (text) => {
+                    if (!text) return 0;
+                    
+                    const length = text.length;
+                    // 理想的长度范围：5-30个字符
+                    if (length >= 5 && length <= 30) return 1.0;
+                    if (length >= 3 && length <= 40) return 0.8;
+                    if (length >= 2 && length <= 50) return 0.6;
+                    return 0.3;
+                };
+                
+                // 智能缓冲识别处理 - 防止语音丢失版本
+                const handleBufferedRecognition = (event) => {
+                    let finalTranscript = '';
+                    let interimTranscript = '';
+                    let confidence = 0;
+                    let confidenceCount = 0;
+                    
+                    // 保存所有结果，防止丢失
+                    const allResults = [];
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const result = event.results[i];
+                        
+                        // 保存所有候选结果，防止丢失
+                        if (result && result.length > 0) {
+                            const firstResult = result[0];
+                            const transcript = firstResult.transcript;
+                            const resultConfidence = firstResult.confidence || 0.8;
+                            
+                            // 累加置信度
+                            confidence += resultConfidence;
+                            confidenceCount++;
+                            
+                            // 保存结果信息
+                            allResults.push({
+                                transcript: transcript,
+                                confidence: resultConfidence,
+                                isFinal: result.isFinal,
+                                timestamp: Date.now()
+                            });
+                            
+                            if (result.isFinal) {
+                                finalTranscript += transcript;
+                            } else {
+                                interimTranscript += transcript;
+                            }
+                        }
+                    }
+
+                    // 计算平均置信度
+                    const avgConfidence = confidenceCount > 0 ? confidence / confidenceCount : 0.8;
+                    
+                    // 调试信息
+                    console.log('语音识别结果:', {
+                        finalTranscript,
+                        interimTranscript,
+                        avgConfidence: (avgConfidence * 100).toFixed(1) + '%',
+                        resultsCount: allResults.length
+                    });
+
+                    const currentTime = Date.now();
+                    
+                    // 处理最终结果 - 防止丢失
+                    if (finalTranscript) {
+                        const cleanedText = finalTranscript.trim();
+                        
+                        if (cleanedText) {
+                            // 检查是否与缓冲池中的内容重复或重叠
+                            const isDuplicate = bufferStatus.speechBuffer.some(item => {
+                                const overlap = findTextOverlap(item.text, cleanedText);
+                                return overlap.length > Math.min(item.text.length, cleanedText.length) * 0.7; // 70%重叠
+                            });
+                            
+                            if (!isDuplicate) {
+                                // 更新语音时间
+                                bufferStatus.lastSpeechTime = currentTime;
+                                bufferStatus.silenceDuration = 0;
+                                
+                                // 添加到缓冲池，保存完整信息
+                                bufferStatus.speechBuffer.push({
+                                    text: cleanedText,
+                                    timestamp: currentTime,
+                                    confidence: avgConfidence,
+                                    results: allResults, // 保存原始结果
+                                    isFinal: true
+                                });
+                                
+                                bufferStatus.bufferLength = bufferStatus.speechBuffer.length;
+                                bufferStatus.currentText = bufferStatus.speechBuffer
+                                    .map(item => item.text)
+                                    .join('');
+                                bufferStatus.isActive = true;
+                                
+                                // 记录置信度
+                                bufferStatus.confidenceScores.push(avgConfidence);
+                            }
+                        }
+                    }
+                    
+                    // 处理中间结果 - 更智能的合并
+                    if (interimTranscript) {
+                        const cleanedInterim = interimTranscript.trim();
+                        
+                        if (cleanedInterim) {
+                            // 检查是否与最近的最终结果重叠
+                            const recentFinal = bufferStatus.speechBuffer
+                                .filter(item => item.isFinal)
+                                .slice(-1)[0];
+                                
+                            if (!recentFinal || !cleanedInterim.includes(recentFinal.text)) {
+                                // 更新当前文本显示
+                                bufferStatus.currentText = bufferStatus.speechBuffer
+                                    .map(item => item.text)
+                                    .join('') + cleanedInterim;
+                            }
+                        }
+                    }
+
+                    // 更频繁的处理检查 - 减少丢失风险
+                    const shouldProcessNow = shouldProcessBufferNow(currentTime) || 
+                                           (bufferStatus.speechBuffer.length >= 2 && 
+                                            bufferStatus.speechBuffer[bufferStatus.speechBuffer.length - 1].isFinal);
+                    
+                    if (shouldProcessNow) {
+                        processSpeechBuffer();
+                    } else {
+                        // 清除之前的定时器
+                        if (bufferStatus.bufferTimer) {
+                            clearTimeout(bufferStatus.bufferTimer);
+                        }
+
+                        // 设置新的定时器，使用更短的缓冲时间防止丢失
+                        const dynamicBufferTime = Math.min(calculateDynamicBufferTime(), 1500); // 最大1.5秒
+                        bufferStatus.bufferTimer = setTimeout(() => {
+                            processSpeechBuffer();
+                        }, dynamicBufferTime);
+                    }
+                };
+                
+                // 检测文本重叠
+                const findTextOverlap = (text1, text2) => {
+                    if (!text1 || !text2) return '';
+                    
+                    const shorter = text1.length <= text2.length ? text1 : text2;
+                    const longer = text1.length <= text2.length ? text2 : text1;
+                    
+                    // 从最长可能的重叠开始检查
+                    for (let i = shorter.length; i > 0; i--) {
+                        const overlap = shorter.substring(0, i);
+                        if (longer.includes(overlap)) {
+                            return overlap;
+                        }
+                    }
+                    
+                    return '';
+                };
+                
+                // 实时预处理文本
+                const preprocessTranscript = (text) => {
+                    if (!text || text.length < 2) return text;
+                    
+                    // 1. 移除孤立的单字符
+                    let processed = text.replace(/\b[的得地]\b/g, '');
+                    
+                    // 2. 修复明显的断句错误
+                    processed = fixImmediateErrors(processed);
+                    
+                    // 3. 合并被错误分割的词汇
+                    processed = mergeBrokenWords(processed);
+                    
+                    return processed;
+                };
+                
+                // 修复明显的错误
+                const fixImmediateErrors = (text) => {
+                    const immediateFixes = {
+                        '直': '直接',
+                        '无': '无',
+                        '不': '不',
+                        '和': '和',
+                        '里': '里',
+                        '外': '外',
+                        '该': '该',
+                        '喝': '喝',
+                        '这': '这',
+                        '个': '个',
+                        '布': '布',
+                        '局': '局',
+                        '呢': '呢'
+                    };
+                    
+                    let result = text;
+                    Object.entries(immediateFixes).forEach(([error, correction]) => {
+                        // 只修复孤立的单字符
+                        const regex = new RegExp(`\\b${error}\\b`, 'g');
+                        result = result.replace(regex, correction);
+                    });
+                    
+                    return result;
+                };
+                
+                // 合并被错误分割的词汇
+                const mergeBrokenWords = (text) => {
+                    const brokenWords = [
+                        '研究室', '医疗', '模块', '冗余度', '专属', '设施',
+                        '卧床', '休息', '病人', '娱乐', '问题', '工作间',
+                        '新版本', '变化', '东西', '工作台', '布局', '居中',
+                        '四周', '机械', '超频', '舒服', '谒见厅', '老布局',
+                        '精致', '美观度', '夸张', '外面'
+                    ];
+                    
+                    let result = text;
+                    brokenWords.forEach(word => {
+                        // 查找被分割的词汇并合并
+                        const parts = word.split('');
+                        const pattern = parts.join('\\s*');
+                        const regex = new RegExp(pattern, 'g');
+                        result = result.replace(regex, word);
+                    });
+                    
+                    return result;
+                };
+                
+                // 检测立即重复
+                const hasImmediateRepetition = (text) => {
+                    if (!text || text.length < 4) return false;
+                    
+                    // 检查是否与最近的缓冲内容重复
+                    if (bufferStatus.speechBuffer.length > 0) {
+                        const lastText = bufferStatus.speechBuffer[bufferStatus.speechBuffer.length - 1].text;
+                        
+                        // 检查是否有大量重复
+                        const similarity = calculateTextSimilarity(text, lastText);
+                        if (similarity > 0.7) return true;
+                    }
+                    
+                    return false;
+                };
+                
+                // 计算文本相似度
+                const calculateTextSimilarity = (text1, text2) => {
+                    if (!text1 || !text2) return 0;
+                    
+                    const words1 = text1.split(/[\s，。！？；：]/);
+                    const words2 = text2.split(/[\s，。！？；：]/);
+                    
+                    const commonWords = words1.filter(word => words2.includes(word));
+                    const totalWords = Math.max(words1.length, words2.length);
+                    
+                    return totalWords > 0 ? commonWords.length / totalWords : 0;
+                };
+                
+                // 分析语气模式
+                const analyzeTonePattern = (text) => {
+                    const analysis = {
+                        hasQuestion: false,
+                        hasExclamation: false,
+                        hasPause: false,
+                        hasEmphasis: false,
+                        sentenceEnding: false,
+                        toneChange: false
+                    };
+                    
+                    // 检测疑问语气
+                    analysis.hasQuestion = /[吗呢啊吧？?]/.test(text);
+                    
+                    // 检测感叹语气
+                    analysis.hasExclamation = /[！!]/.test(text);
+                    
+                    // 检测停顿语气
+                    analysis.hasPause = /[，,；;]/.test(text);
+                    
+                    // 检测强调语气
+                    analysis.hasEmphasis = /[非常特别十分极其确实肯定当然]/.test(text);
+                    
+                    // 检测句子结束
+                    analysis.sentenceEnding = /[。！？；：.!?;:]$/.test(text);
+                    
+                    // 检测语调变化
+                    analysis.toneChange = /[呢啊吧呀哦哎]/.test(text);
+                    
+                    return analysis;
+                };
+                
+                // 基于语气模式判断是否处理
+                const shouldProcessByTonePattern = () => {
+                    if (bufferStatus.toneBuffer.length === 0) return false;
+                    
+                    const currentTone = bufferStatus.toneBuffer[bufferStatus.toneBuffer.length - 1];
+                    const previousTones = bufferStatus.toneBuffer.slice(-3);
+                    
+                    // 1. 明显的句子结束语气
+                    if (currentTone.sentenceEnding) return true;
+                    
+                    // 2. 疑问或感叹语气
+                    if (currentTone.hasQuestion || currentTone.hasExclamation) return true;
+                    
+                    // 3. 语调变化后的停顿
+                    if (currentTone.toneChange && bufferStatus.pauseDuration > 500) return true;
+                    
+                    // 4. 强调语气后的完整表达
+                    if (currentTone.hasEmphasis && bufferStatus.currentText.length > 15) return true;
+                    
+                    // 5. 连续停顿模式
+                    const pauseCount = previousTones.filter(tone => tone.hasPause).length;
+                    if (pauseCount >= 2 && bufferStatus.currentText.length > 10) return true;
+                    
+                    return false;
+                };
+                
+                // 判断是否应该立即处理缓冲 - 增强版
+                const shouldProcessBufferImmediately = () => {
+                    if (bufferStatus.speechBuffer.length === 0) return false;
+                    
+                    const currentText = bufferStatus.currentText;
+                    
+                    // 1. 检查是否有明显的句子结束标志
+                    const hasSentenceEnd = /[。！？；：.!?;:]$/.test(currentText);
+                    if (hasSentenceEnd) return true;
+                    
+                    // 2. 检查句子长度是否足够
+                    if (currentText.length > 30) return true;
+                    
+                    // 3. 检查是否有完整的句子结构
+                    const hasCompleteStructure = /[我你他她它我们你们他们她们它们这那].*[是的有在说看听想觉得认为].*[。！？；：.!?;:]/.test(currentText);
+                    if (hasCompleteStructure) return true;
+                    
+                    // 4. 检查置信度是否足够高
+                    if (bufferStatus.confidenceScores.length > 0) {
+                        const avgConfidence = bufferStatus.confidenceScores.reduce((a, b) => a + b, 0) / bufferStatus.confidenceScores.length;
+                        if (avgConfidence > 0.75) return true;
+                    }
+                    
+                    // 5. 检查语义完整性
+                    if (isSemanticallyComplete(currentText)) return true;
+                    
+                    // 6. 检查停顿时间
+                    const timeSinceLastSpeech = Date.now() - bufferStatus.lastSpeechTime;
+                    if (timeSinceLastSpeech > 3000 && currentText.length > 15) return true;
+                    
+                    // 7. 检查重复内容
+                    if (hasExcessiveRepetition(currentText)) return true;
+                    
+                    return false;
+                };
+                
+                // 检查是否有过度重复
+                const hasExcessiveRepetition = (text) => {
+                    if (!text || text.length < 10) return false;
+                    
+                    // 检查连续重复的短语
+                    const words = text.split(/[\s，。！？；：]/);
+                    const wordCount = {};
+                    
+                    words.forEach(word => {
+                        if (word.length > 1) {
+                            wordCount[word] = (wordCount[word] || 0) + 1;
+                        }
+                    });
+                    
+                    // 如果某个词出现超过3次，认为是过度重复
+                    const excessiveWords = Object.entries(wordCount).filter(([word, count]) => count > 3);
+                    
+                    return excessiveWords.length > 0;
+                };
+                
+                // 检查语义完整性
+                const isSemanticallyComplete = (text) => {
+                    if (!text || text.length < 5) return false;
+                    
+                    // 检查是否包含完整的语义单元
+                    const semanticPatterns = [
+                        // 主谓结构
+                        /[我你他她它我们你们他们].*[是的有在说看听想]/,
+                        // 描述性结构
+                        /[这那].*[是的有]/,
+                        // 动作结构
+                        /[可以能够应该必须].*[做进行实现完成]/,
+                        // 评价结构
+                        /[非常特别十分极其].*[好差快慢大小]/,
+                        // 数量结构
+                        /\d+.*[个只条张本台部]/
+                    ];
+                    
+                    return semanticPatterns.some(pattern => pattern.test(text));
+                };
+                
+                // 计算最优缓冲时间
+                const calculateOptimalBufferTime = () => {
+                    let baseTime = settings.bufferTime * 1000;
+                    
+                    // 根据当前文本长度调整
+                    if (bufferStatus.currentText.length > 30) {
+                        baseTime *= 0.7; // 长文本减少等待时间
+                    } else if (bufferStatus.currentText.length < 10) {
+                        baseTime *= 1.3; // 短文本增加等待时间
+                    }
+                    
+                    // 根据置信度调整
+                    if (bufferStatus.confidenceScores.length > 0) {
+                        const avgConfidence = bufferStatus.confidenceScores.reduce((a, b) => a + b, 0) / bufferStatus.confidenceScores.length;
+                        if (avgConfidence < 0.6) {
+                            baseTime *= 1.2; // 低置信度增加等待时间
+                        } else if (avgConfidence > 0.9) {
+                            baseTime *= 0.8; // 高置信度减少等待时间
+                        }
+                    }
+                    
+                    // 根据上下文历史调整
+                    if (bufferStatus.contextHistory.length > 0) {
+                        const lastSentence = bufferStatus.contextHistory[bufferStatus.contextHistory.length - 1];
+                        if (lastSentence.length > 15) {
+                            baseTime *= 0.9; // 如果上一句很长，减少等待时间
+                        }
+                    }
+                    
+                    return Math.max(baseTime, 500); // 最小500ms
+                };
+                
+                // 传统识别处理
+                const handleTraditionalRecognition = (event) => {
+                    let finalTranscript = '';
+                    let confidence = 0;
+                    let confidenceCount = 0;
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const result = event.results[i];
+                        
+                        // 简化处理：直接使用第一个候选结果
+                        if (result && result.length > 0) {
+                            const firstResult = result[0];
+                            const transcript = firstResult.transcript;
+                            const resultConfidence = firstResult.confidence || 0.8;
+                            
+                            // 累加置信度
+                            confidence += resultConfidence;
+                            confidenceCount++;
+                            
+                            if (result.isFinal) {
+                                finalTranscript += transcript;
+                            }
+                        }
+                    }
+
+                    if (finalTranscript) {
+                        // 计算平均置信度
+                        const avgConfidence = confidenceCount > 0 ? confidence / confidenceCount : 0.8;
+                        
+                        // 更新置信度显示（传统模式也显示置信度）
+                        bufferStatus.confidenceScores = [avgConfidence];
+                        
+                        // 错别字纠正
+                        let correctedTranscript = finalTranscript;
+                        if (settings.autoCorrect) {
+                            correctedTranscript = checkAndCorrectText(finalTranscript);
+                        }
+                        
+                        const timestamp = getTimestamp();
+                        const line = `[${timestamp}] ${correctedTranscript}\n`;
+                        transcriptText.value += line;
+                        
+                        // 滚动到底部
+                        nextTick(() => {
+                            if (transcriptContent.value) {
+                                transcriptContent.value.scrollTop = transcriptContent.value.scrollHeight;
+                            }
+                        });
+                    }
+                };
+                
+                // 获取视频约束
+                const getVideoConstraints = () => {
+                    const constraints = {
+                        '1080p': { width: 1920, height: 1080, frameRate: 30 },
+                        '720p': { width: 1280, height: 720, frameRate: 30 },
+                        '480p': { width: 854, height: 480, frameRate: 24 }
+                    };
+                    
+                    return constraints[settings.videoQuality];
+                };
+                
+                // 获取时间戳
+                const getTimestamp = () => {
+                    if (!startTime.value) return '00:00:00';
+                    
+                    const elapsed = Date.now() - startTime.value;
+                    const hours = Math.floor(elapsed / 3600000);
+                    const minutes = Math.floor((elapsed % 3600000) / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    
+                    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                };
+                
+                // 检查麦克风权限状态
+                const checkMicrophonePermission = async () => {
+                    try {
+                        if (navigator && navigator.permissions) {
+                            const result = await navigator.permissions.query({ name: 'microphone' });
+                            console.log('麦克风权限状态:', result.state);
+                            return result.state;
+                        } else {
+                            console.log('浏览器不支持权限查询API');
+                            return 'unknown';
+                        }
+                    } catch (error) {
+                        console.log('无法检查麦克风权限状态:', error);
+                        return 'unknown';
+                    }
+                };
+                
+                // 检查网络连接状态
+                const checkNetworkStatus = () => {
+                    try {
+                        const status = {
+                            online: navigator?.onLine || true,
+                            connectionType: 'unknown',
+                            effectiveType: 'unknown',
+                            downlink: 0,
+                            rtt: 0,
+                            browser: getBrowserInfo(),
+                            canAccessGoogle: false,
+                            canAccessApple: false
+                        };
+                        
+                        // 检查网络连接类型
+                        if (navigator && 'connection' in navigator) {
+                            const connection = navigator.connection;
+                            status.connectionType = connection.effectiveType || 'unknown';
+                            status.effectiveType = connection.effectiveType || 'unknown';
+                            status.downlink = connection.downlink || 0;
+                            status.rtt = connection.rtt || 0;
+                        }
+                        
+                        // 检查是否能访问语音识别服务
+                        checkServiceAccessibility().then(accessibility => {
+                            status.canAccessGoogle = accessibility.google;
+                            status.canAccessApple = accessibility.apple;
+                        });
+                        
+                        console.log('网络状态:', status);
+                        return status;
+                    } catch (error) {
+                        console.log('检查网络状态失败:', error);
+                        return {
+                            online: true,
+                            connectionType: 'unknown',
+                            effectiveType: 'unknown',
+                            downlink: 0,
+                            rtt: 0,
+                            browser: 'unknown',
+                            canAccessGoogle: false,
+                            canAccessApple: false
+                        };
+                    }
+                };
+                
+                // 获取浏览器信息
+                const getBrowserInfo = () => {
+                    try {
+                        const userAgent = navigator?.userAgent || '';
+                        let browser = 'unknown';
+                        
+                        if (userAgent.includes('Chrome')) {
+                            browser = 'Chrome';
+                        } else if (userAgent.includes('Safari')) {
+                            browser = 'Safari';
+                        } else if (userAgent.includes('Firefox')) {
+                            browser = 'Firefox';
+                        } else if (userAgent.includes('Edge')) {
+                            browser = 'Edge';
+                        }
+                        
+                        return browser;
+                    } catch (error) {
+                        console.log('获取浏览器信息失败:', error);
+                        return 'unknown';
+                    }
+                };
+                
+                // 检查语音识别服务可访问性
+                const checkServiceAccessibility = async () => {
+                    const accessibility = {
+                        google: false,
+                        apple: false
+                    };
+                    
+                    try {
+                        // 检查Google服务（Chrome/Edge使用）
+                        const googleTest = await fetch('https://www.google.com/favicon.ico', {
+                            method: 'HEAD',
+                            mode: 'no-cors'
+                        });
+                        accessibility.google = true;
+                    } catch (error) {
+                        console.log('⚠️ 无法访问Google服务:', error);
+                    }
+                    
+                    try {
+                        // 检查Apple服务（Safari使用）
+                        const appleTest = await fetch('https://www.apple.com/favicon.ico', {
+                            method: 'HEAD',
+                            mode: 'no-cors'
+                        });
+                        accessibility.apple = true;
+                    } catch (error) {
+                        console.log('⚠️ 无法访问Apple服务:', error);
+                    }
+                    
+                    return accessibility;
+                };
+                
+                // 网络状态监听
+                const setupNetworkMonitoring = () => {
+                    // 初始化网络状态
+                    updateNetworkStatus();
+                    
+                    // 监听网络状态变化
+                    window.addEventListener('online', () => {
+                        console.log('🌐 网络已连接');
+                        isOnline.value = true;
+                        ElMessage.success('网络连接已恢复');
+                        
+                        // 如果正在录制，尝试重新连接语音识别
+                        if (isRecording.value && recognition.value) {
+                            setTimeout(() => {
+                                try {
+                                    recognition.value.start();
+                                } catch (error) {
+                                    console.log('网络恢复后重连失败:', error);
+                                }
+                            }, 1000);
+                        }
+                    });
+                    
+                    window.addEventListener('offline', () => {
+                        console.log('🌐 网络已断开');
+                        isOnline.value = false;
+                        ElMessage.warning('网络连接已断开，语音识别可能受影响');
+                    });
+                    
+                    // 监听网络质量变化
+                    if (navigator && 'connection' in navigator) {
+                        navigator.connection.addEventListener('change', () => {
+                            updateNetworkStatus();
+                            const networkStatus = checkNetworkStatus();
+                            console.log('🌐 网络质量变化:', networkStatus);
+                            
+                            // 如果网络质量较差，给出提示
+                            if (networkStatus.effectiveType === 'slow-2g' || networkStatus.effectiveType === '2g') {
+                                ElMessage.warning('网络质量较差，可能影响语音识别效果');
+                            }
+                        });
+                    }
+                };
+                
+                // 更新网络状态显示
+                const updateNetworkStatus = () => {
+                    try {
+                        isOnline.value = navigator?.onLine || true;
+                        currentBrowser.value = getBrowserInfo();
+                        
+                        if (navigator && 'connection' in navigator) {
+                            networkType.value = navigator.connection.effectiveType || '未知';
+                        } else {
+                            networkType.value = '未知';
+                        }
+                    } catch (error) {
+                        console.log('更新网络状态失败:', error);
+                        isOnline.value = true;
+                        networkType.value = '未知';
+                        currentBrowser.value = '未知';
+                    }
+                };
+                
+                // 检查语音识别支持
+                const checkSpeechRecognitionSupport = () => {
+                    try {
+                        const supportInfo = {
+                            webkitSpeechRecognition: 'webkitSpeechRecognition' in window,
+                            SpeechRecognition: 'SpeechRecognition' in window,
+                            userAgent: navigator?.userAgent || '未知',
+                            platform: navigator?.platform || '未知',
+                            language: navigator?.language || '未知'
+                        };
+                        
+                        console.log('🔍 语音识别支持检查:', supportInfo);
+                        
+                        let message = '语音识别支持检查:\n';
+                        message += `- WebkitSpeechRecognition: ${supportInfo.webkitSpeechRecognition ? '支持' : '不支持'}\n`;
+                        message += `- SpeechRecognition: ${supportInfo.SpeechRecognition ? '支持' : '不支持'}\n`;
+                        message += `- 浏览器: ${supportInfo.userAgent.split(' ').pop() || '未知'}\n`;
+                        message += `- 平台: ${supportInfo.platform}\n`;
+                        message += `- 语言: ${supportInfo.language}`;
+                        
+                        if (supportInfo.webkitSpeechRecognition || supportInfo.SpeechRecognition) {
+                            ElMessage.success('语音识别功能支持正常');
+                        } else {
+                            ElMessage.error('当前浏览器不支持语音识别功能');
+                        }
+                        
+                        // 显示详细信息
+                        ElMessageBox.alert(message, '语音识别支持检查', {
+                            confirmButtonText: '确定',
+                            type: 'info'
+                        });
+                    } catch (error) {
+                        console.error('检查语音识别支持时出错:', error);
+                        ElMessage.error('检查语音识别支持时出错');
+                    }
+                };
+                
+                // 开始录制
+                const startRecording = async () => {
+                    try {
+                        // 重置之前的录制状态
+                        if (stream.value) {
+                            stream.value.getTracks().forEach(track => track.stop());
+                        }
+                        
+                        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+                            video: getVideoConstraints(),
+                            audio: true
+                        });
+
+                        let audioStream = null;
+                        if (settings.audioSource === 'microphone' || settings.audioSource === 'both') {
+                            try {
+                                audioStream = await navigator.mediaDevices.getUserMedia({
+                                    audio: true
+                                });
+                            } catch (err) {
+                                console.warn('无法获取麦克风权限:', err);
+                                ElMessage.warning('无法获取麦克风权限');
+                            }
+                        }
+
+                        // 合并音频流
+                        if (audioStream && settings.audioSource === 'both') {
+                            const audioContext = new AudioContext();
+                            const displayAudio = audioContext.createMediaStreamSource(displayStream);
+                            const micAudio = audioContext.createMediaStreamSource(audioStream);
+                            const destination = audioContext.createMediaStreamDestination();
+                            
+                            displayAudio.connect(destination);
+                            micAudio.connect(destination);
+                            
+                            stream.value = new MediaStream([
+                                ...displayStream.getVideoTracks(),
+                                ...destination.stream.getAudioTracks()
+                            ]);
+                        } else if (audioStream && settings.audioSource === 'microphone') {
+                            stream.value = new MediaStream([
+                                ...displayStream.getVideoTracks(),
+                                ...audioStream.getAudioTracks()
+                            ]);
+                        } else {
+                            stream.value = displayStream;
+                        }
+
+                        // 显示视频预览
+                        if (videoElement.value) {
+                            videoElement.value.srcObject = stream.value;
+                        }
+
+                        // 初始化录制
+                        const mediaRecorder = new MediaRecorder(stream.value, {
+                            mimeType: 'video/webm;codecs=vp9'
+                        });
+
+                        const chunks = [];
+                        mediaRecorder.ondataavailable = (event) => {
+                            if (event.data.size > 0) {
+                                chunks.push(event.data);
+                            }
+                        };
+
+                        mediaRecorder.onstop = () => {
+                            recordedBlob.value = new Blob(chunks, { type: 'video/webm' });
+                            ElMessage.success('录制完成！');
+                        };
+
+                        // 开始录制
+                        mediaRecorder.start();
+                        isRecording.value = true;
+                        startTime.value = Date.now();
+                        status.value = '正在录制...';
+                        reconnectCount.value = 0; // 重置重连计数器
+
+                        // 开始语音识别
+                        if (initSpeechRecognition()) {
+                            recognition.value.start();
+                        }
+
+                        // 监听录制结束
+                        stream.value.getVideoTracks()[0].onended = () => {
+                            stopRecording();
+                        };
+
+                        ElMessage.success('录制已开始！');
+
+                    } catch (error) {
+                        console.error('录制失败:', error);
+                        ElMessage.error('录制失败: ' + error.message);
+                    }
+                };
+                
+                // 停止录制
+                const stopRecording = () => {
+                    if (stream.value) {
+                        stream.value.getTracks().forEach(track => track.stop());
+                        stream.value = null;
+                    }
+                    
+                    if (recognition.value) {
+                        recognition.value.stop();
+                    }
+                    
+                    // 处理最后的缓冲内容
+                    if (settings.smartBuffer && bufferStatus.isActive) {
+                        processSpeechBuffer();
+                    }
+                    
+                    isRecording.value = false;
+                    status.value = '录制已停止';
+                    
+                    // 清除视频预览
+                    if (videoElement.value) {
+                        videoElement.value.srcObject = null;
+                    }
+                };
+                
+                // 下载视频
+                const downloadVideo = () => {
+                    if (!recordedBlob.value) {
+                        ElMessage.warning('没有录制的视频可下载');
+                        return;
+                    }
+                    
+                    const url = URL.createObjectURL(recordedBlob.value);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `录屏_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    ElMessage.success('视频下载成功');
+                };
+                
+                // 清空字幕
+                const clearTranscript = () => {
+                    transcriptText.value = '';
+                    corrections.value = [];
+                    ElMessage.success('字幕已清空');
+                };
+                
+                // 导出字幕
+                const exportTranscript = () => {
+                    if (!transcriptText.value) {
+                        ElMessage.warning('没有字幕内容可导出');
+                        return;
+                    }
+                    
+                    const blob = new Blob([transcriptText.value], { type: 'text/plain;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `字幕_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    ElMessage.success('字幕导出成功');
+                };
+                
+                // 复制字幕
+                const copyTranscript = () => {
+                    if (!transcriptText.value) {
+                        ElMessage.warning('没有字幕内容可复制');
+                        return;
+                    }
+                    
+                    navigator.clipboard.writeText(transcriptText.value).then(() => {
+                        ElMessage.success('字幕已复制到剪贴板');
+                    }).catch(() => {
+                        ElMessage.error('复制失败，请手动复制');
+                    });
+                };
+                
+                // 保存字幕
+                const saveTranscript = () => {
+                    if (!transcriptText.value) {
+                        ElMessage.warning('没有字幕内容可保存');
+                        return;
+                    }
+                    
+                    const saveData = {
+                        text: transcriptText.value,
+                        timestamp: Date.now(),
+                        settings: { ...settings }
+                    };
+                    
+                    localStorage.setItem('savedTranscript', JSON.stringify(saveData));
+                    ElMessage.success('字幕已保存到本地存储');
+                };
+                
+                // 加载保存的字幕
+                const loadSavedTranscript = () => {
+                    const saved = localStorage.getItem('savedTranscript');
+                    if (saved) {
+                        try {
+                            const data = JSON.parse(saved);
+                            const savedTime = new Date(data.timestamp);
+                            
+                            ElMessageBox.confirm(`发现保存的字幕内容 (${savedTime.toLocaleString()})，是否恢复？`, '提示', {
+                                confirmButtonText: '恢复',
+                                cancelButtonText: '取消',
+                                type: 'info'
+                            }).then(() => {
+                                transcriptText.value = data.text;
+                                ElMessage.success('字幕内容已恢复');
+                            }).catch(() => {
+                                // 用户取消
+                            });
+                        } catch (error) {
+                            console.error('加载保存的字幕失败:', error);
+                        }
+                    }
+                };
+                
+                // 翻译功能
+                const translateTranscript = async () => {
+                    if (!transcriptText.value) {
+                        ElMessage.warning('没有字幕内容可翻译');
+                        return;
+                    }
+                    
+                    translationStatus.isLoading = true;
+                    translationStatus.message = '正在翻译中，请稍候...';
+                    
+                    try {
+                        // 将字幕文本按行分割并翻译
+                        const lines = transcriptText.value.split('\n').filter(line => line.trim());
+                        let translatedLines = [];
+                        
+                        for (let i = 0; i < lines.length; i++) {
+                            const line = lines[i];
+                            const timestampMatch = line.match(/^\[(\d{2}:\d{2}:\d{2})\]/);
+                            
+                            if (timestampMatch) {
+                                const timestamp = timestampMatch[1];
+                                const text = line.substring(timestampMatch[0].length).trim();
+                                
+                                if (text) {
+                                    try {
+                                        const translatedText = await translateText(text, 'zh', translationSettings.targetLanguage);
+                                        translatedLines.push(`${timestamp} ${translatedText}`);
+                                        translationStatus.message = `正在翻译第 ${i + 1}/${lines.length} 行...`;
+                                    } catch (err) {
+                                        console.error('翻译失败:', err);
+                                        translatedLines.push(`${timestamp} [翻译失败] ${text}`);
+                                    }
+                                } else {
+                                    translatedLines.push(line);
+                                }
+                            } else {
+                                translatedLines.push(line);
+                            }
+                        }
+                        
+                        translationText.value = translatedLines.join('\n');
+                        translationStatus.message = '翻译完成';
+                        
+                    } catch (error) {
+                        console.error('翻译过程出错:', error);
+                        let errorMessage = '翻译失败: ' + error.message;
+                        
+                        if (error.message.includes('CORS') || error.message.includes('跨域')) {
+                            errorMessage = '翻译失败: CORS跨域问题。请尝试切换到其他翻译API，或使用本地服务器运行此文件。';
+                        }
+                        
+                        ElMessage.error(errorMessage);
+                        translationStatus.message = '翻译失败';
+                    } finally {
+                        translationStatus.isLoading = false;
+                    }
+                };
+                
+                // 翻译单行文本
+                const translateText = async (text, sourceLang, targetLang) => {
+                    const api = translateApis[currentTranslateApi.value];
+                    
+                    if (!api) {
+                        throw new Error('未知的翻译API');
+                    }
+                    
+                    try {
+                        switch (currentTranslateApi.value) {
+                            case 'localTranslate':
+                                // 本地翻译逻辑
+                                console.log('使用本地翻译API');
+                                // 这里可以实现本地翻译逻辑，比如使用预训练的翻译模型
+                                // 或者接入其他本地翻译服务
+                                await new Promise(resolve => setTimeout(resolve, 100)); // 模拟延迟
+                                return `[本地翻译] ${text}`; // 示例本地翻译
+                                
+                            case 'myMemory':
+                                // MyMemory API
+                                const myMemoryUrl = `${api.url}?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`;
+                                const myMemoryResponse = await fetch(myMemoryUrl);
+                                
+                                if (!myMemoryResponse.ok) {
+                                    throw new Error(`MyMemory API请求失败: ${myMemoryResponse.status}`);
+                                }
+                                
+                                const myMemoryData = await myMemoryResponse.json();
+                                return myMemoryData.responseData.translatedText;
+                                
+                            case 'googleTranslate':
+                                // Google Translate API - GET请求，CORS友好
+                                const googleUrl = `${api.url}?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+                                const googleResponse = await fetch(googleUrl);
+                                
+                                if (!googleResponse.ok) {
+                                    throw new Error(`Google Translate API请求失败: ${googleResponse.status}`);
+                                }
+                                
+                                const googleData = await googleResponse.json();
+                                return googleData[0][0][0];
+                                
+                            case 'libreTranslate':
+                                // LibreTranslate API - POST请求，可能有CORS问题
+                                const libreResponse = await fetch(api.url, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        q: text,
+                                        source: sourceLang,
+                                        target: targetLang
+                                    })
+                                });
+                                
+                                if (!libreResponse.ok) {
+                                    throw new Error(`LibreTranslate API请求失败: ${libreResponse.status}`);
+                                }
+                                
+                                const libreData = await libreResponse.json();
+                                return libreData.translatedText;
+                                
+                            default:
+                                throw new Error('未知的翻译API');
+                        }
+                    } catch (error) {
+                        console.error('翻译请求失败:', error);
+                        
+                        // 如果当前API失败，尝试切换到本地翻译
+                        if (currentTranslateApi.value !== 'localTranslate') {
+                            console.log('尝试切换到本地翻译API...');
+                            currentTranslateApi.value = 'localTranslate';
+                            return await translateText(text, sourceLang, targetLang);
+                        }
+                        
+                        throw error;
+                    }
+                };
+                
+                // 清空翻译
+                const clearTranslation = () => {
+                    translationText.value = '';
+                    translationStatus.message = '';
+                    ElMessage.success('翻译已清空');
+                };
+                
+                // 导出翻译
+                const exportTranslation = () => {
+                    if (!translationText.value || translationText.value === '等待翻译...') {
+                        ElMessage.warning('没有翻译内容可导出');
+                        return;
+                    }
+                    
+                    const blob = new Blob([translationText.value], { type: 'text/plain;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `翻译_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    ElMessage.success('翻译导出成功');
+                };
+                
+                // 复制翻译
+                const copyTranslation = () => {
+                    if (!translationText.value || translationText.value === '等待翻译...') {
+                        ElMessage.warning('没有翻译内容可复制');
+                        return;
+                    }
+                    
+                    navigator.clipboard.writeText(translationText.value).then(() => {
+                        ElMessage.success('翻译已复制到剪贴板');
+                    }).catch(() => {
+                        ElMessage.error('复制失败，请手动复制');
+                    });
+                };
+                
+                // 保存翻译
+                const saveTranslation = () => {
+                    if (!translationText.value || translationText.value === '等待翻译...') {
+                        ElMessage.warning('没有翻译内容可保存');
+                        return;
+                    }
+                    
+                    const saveData = {
+                        text: translationText.value,
+                        timestamp: Date.now(),
+                        targetLanguage: translationSettings.targetLanguage
+                    };
+                    
+                    localStorage.setItem('savedTranslation', JSON.stringify(saveData));
+                    ElMessage.success('翻译已保存到本地存储');
+                };
+                
+                // 组件挂载时加载保存的内容
+                onMounted(() => {
+                    loadSavedTranscript();
+                    // 设置网络监控
+                    setupNetworkMonitoring();
+                    // 检查初始网络状态
+                    checkNetworkStatus();
+                    // 更新网络状态显示
+                    updateNetworkStatus();
+                });
+                
+                return {
+                    // 状态
+                    isRecording,
+                    status,
+                    recordedBlob,
+                    videoElement,
+                    transcriptContent,
+                    transcriptText,
+                    translationText,
+                    translationStatus,
+                    bufferStatus,
+                    corrections,
+                    
+                    // 设置
+                    settings,
+                    translationSettings,
+                    currentTranslateApi,
+                    
+                    // 方法
+                    startRecording,
+                    stopRecording,
+                    downloadVideo,
+                    clearTranscript,
+                    exportTranscript,
+                    copyTranscript,
+                    saveTranscript,
+                    translateTranscript,
+                    clearTranslation,
+                    exportTranslation,
+                    copyTranslation,
+                    saveTranslation,
+                    applyCorrection,
+                    getToneAnalysisDisplay,
+                    checkSpeechRecognitionSupport,
+                    checkMicrophonePermission,
+                    checkNetworkStatus,
+                    getBrowserInfo,
+                    updateNetworkStatus
+                };
+            }
+        }).use(ElementPlus).mount('#app');
+    </script>
+</body>
+</html> 
+</html>

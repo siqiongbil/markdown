@@ -74,28 +74,36 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #ffffff;
+            color: #1a202c;
             min-height: 100vh;
             overflow-x: hidden;
+            line-height: 1.6;
         }
 
         .container {
             min-height: 100vh;
             overflow: hidden;
+            background: white;
+            margin: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
 
         .header {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            padding: 30px;
+            background: #ffffff;
+            color: #1a202c;
+            padding: 40px 30px;
             text-align: center;
+            border-bottom: 1px solid #e2e8f0;
         }
 
         .header h1 {
             font-size: 2.5rem;
             margin-bottom: 10px;
-            font-weight: 700;
+            font-weight: 600;
+            color: #333;
         }
 
         .header p {
@@ -278,6 +286,10 @@
     </style>
 </head>
 <body>
+    <!-- 返回文档链接 -->
+    <div style="position: fixed; top: 10px; left: 10px; z-index: 2000; padding: 8px 12px; border-radius: 5px; border: 1px solid #dee2e6;">
+        <a href="https://www.siqiongbiluo.love/article/23" style="text-decoration: none; color: #61dafb; font-size: 14px; font-weight: 500;">← 返回文档</a>
+    </div>
     <div id="root">
         <div class="loading-message">
             <h2>⏳ 正在加载依赖...</h2>
@@ -377,15 +389,15 @@
                 } else {
                     // 使用文本替代图标
                     icons = {
-                        VideoCameraOutlined: () => React.createElement('span', {}, '📹'),
-                        PauseCircleOutlined: () => React.createElement('span', {}, '⏸️'),
-                        DownloadOutlined: () => React.createElement('span', {}, '⬇️'),
-                        DeleteOutlined: () => React.createElement('span', {}, '🗑️'),
-                        FileTextOutlined: () => React.createElement('span', {}, '📄'),
-                        CopyOutlined: () => React.createElement('span', {}, '📋'),
-                        FolderOutlined: () => React.createElement('span', {}, '📁'),
-                        ReloadOutlined: () => React.createElement('span', {}, '🔄'),
-                        SettingOutlined: () => React.createElement('span', {}, '⚙️')
+                        VideoCameraOutlined: () => React.createElement('span', {}, ''),
+                PlayCircleOutlined: () => React.createElement('span', {}, ''),
+                PauseCircleOutlined: () => React.createElement('span', {}, ''),
+                DeleteOutlined: () => React.createElement('span', {}, ''),
+                FileTextOutlined: () => React.createElement('span', {}, ''),
+                CopyOutlined: () => React.createElement('span', {}, ''),
+                FolderOutlined: () => React.createElement('span', {}, ''),
+                ReloadOutlined: () => React.createElement('span', {}, ''),
+                SettingOutlined: () => React.createElement('span', {}, '')
                     };
                 }
 
@@ -1182,7 +1194,7 @@
 
                     return React.createElement('div', { className: 'container' }, [
                         React.createElement('div', { className: 'header', key: 'header' }, [
-                            React.createElement('h1', { key: 'title' }, '📹 React录屏+音频转字幕系统'),
+                            React.createElement('h1', { key: 'title' }, 'React录屏+音频转字幕系统'),
                             React.createElement('p', { key: 'subtitle' }, '基于React 18 + Ant Design的现代化录屏与语音识别解决方案')
                         ]),
                         React.createElement('div', { className: 'content', key: 'content' }, [
@@ -1190,7 +1202,7 @@
                             React.createElement('div', { className: 'control-row', key: 'control-row' }, [
                                 // 控制面板
                                 React.createElement('div', { className: 'panel', key: 'control-panel' }, [
-                                    React.createElement('h2', { className: 'section-title', key: 'control-title' }, '🎮 控制面板'),
+                                    React.createElement('h2', { className: 'section-title', key: 'control-title' }, '控制面板'),
                                     React.createElement(Alert, {
                                         key: 'status-alert',
                                         message: statusMessage,
@@ -1217,7 +1229,7 @@
                                         React.createElement(Button, {
                                             key: 'test-speech-btn',
                                             type: 'default',
-                                            icon: React.createElement('span', {}, '🎤'),
+                                            icon: React.createElement('span', {}),
                                             onClick: testSpeechRecognition,
                                             disabled: isRecording
                                         }, '测试语音识别'),
@@ -1247,7 +1259,7 @@
                                 ]),
                                 // 视频预览面板
                                 React.createElement('div', { className: 'panel', key: 'video-panel' }, [
-                                    React.createElement('h2', { className: 'section-title', key: 'video-title' }, '📺 视频预览'),
+                                    React.createElement('h2', { className: 'section-title', key: 'video-title' }, '视频预览'),
                                     React.createElement('div', { className: 'video-container', key: 'video-container' }, [
                                         React.createElement('video', {
                                             key: 'video',
@@ -1270,7 +1282,7 @@
                             ]),
                             // 字幕面板
                             React.createElement('div', { className: 'transcript-panel', key: 'transcript-panel' }, [
-                                React.createElement('h2', { className: 'section-title', key: 'transcript-title' }, '📝 实时字幕'),
+                                React.createElement('h2', { className: 'section-title', key: 'transcript-title' }, '实时字幕'),
                                 React.createElement('div', {
                                     key: 'transcript-content',
                                     className: 'transcript-content'
@@ -1293,14 +1305,14 @@
                                     }, '保存字幕'),
                                     React.createElement(Button, {
                                         key: 'load-btn',
-                                        icon: React.createElement('span', {}, '📂'),
+                                        icon: React.createElement('span', {}),
                                         onClick: loadSavedTranscript
                                     }, '加载字幕')
                                 ])
                             ]),
                             // 翻译面板
                             React.createElement('div', { className: 'translation-panel', key: 'translation-panel' }, [
-                                React.createElement('h2', { className: 'section-title', key: 'translation-title' }, '🌐 翻译功能'),
+                                React.createElement('h2', { className: 'section-title', key: 'translation-title' }, '翻译功能'),
                                 React.createElement('div', {
                                     key: 'translation-controls',
                                     style: { marginBottom: 20 }
@@ -1389,14 +1401,14 @@
                                     }, '保存翻译'),
                                     React.createElement(Button, {
                                         key: 'load-translation-btn',
-                                        icon: React.createElement('span', {}, '📂'),
+                                        icon: React.createElement('span', {}, ''),
                                         onClick: loadSavedTranslation
                                     }, '加载翻译')
                                 ])
                             ]),
                             // 设置面板
                             React.createElement('div', { className: 'settings-panel', key: 'settings-panel' }, [
-                                React.createElement('h2', { className: 'section-title', key: 'settings-title' }, '⚙️ 录制设置'),
+                                React.createElement('h2', { className: 'section-title', key: 'settings-title' }, '录制设置'),
                                 React.createElement('div', { className: 'settings-grid', key: 'settings-grid' }, [
                                     React.createElement(Select, {
                                         key: 'quality-select',
@@ -1450,7 +1462,7 @@
                 console.error('初始化失败:', error);
                 document.getElementById('root').innerHTML = `
                     <div class="error-message">
-                        <h2>❌ 系统初始化失败</h2>
+                        <h2>系统初始化失败</h2>
                         <p>错误信息: ${error.message}</p>
                         <p>请刷新页面重试，或检查网络连接</p>
                     </div>

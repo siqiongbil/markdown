@@ -12,32 +12,31 @@
                  body {
              margin: 0;
              padding: 0;
-             font-family: 'Microsoft YaHei', Arial, sans-serif;
-             background: white;
+             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
              height: 100vh;
              overflow: hidden;
+             line-height: 1.6;
          }
         
-                 .container {
+         .container {
              max-width: 100%;
              margin: 0;
-             background: white;
              overflow: hidden;
          }
         
-                 .header {
+         .header {
              display: none;
          }
         
-                 .controls {
+         .controls {
              padding: 15px;
-             background: #f8f9fa;
-             border-bottom: 1px solid #e9ecef;
+             color: #1a202c;
              position: absolute;
              top: 0;
              left: 0;
              right: 0;
              z-index: 1000;
+             border-bottom: 1px solid #e2e8f0;
          }
         
         .control-group {
@@ -49,35 +48,37 @@
         .control-group label {
             display: block;
             margin-bottom: 5px;
-            font-weight: bold;
-            color: #495057;
+            font-weight: 500;
+            color: #1a202c;
         }
         
         .control-group input, .control-group select, .control-group button {
             padding: 8px 12px;
-            border: 1px solid #ced4da;
+            border: 1px solid #dee2e6;
             border-radius: 4px;
             font-size: 14px;
         }
         
         .control-group button {
-            background: #007bff;
-            color: white;
-            border: none;
+            border: 1px solid #007bff;
+            color: #007bff;
+            background: transparent;
             cursor: pointer;
-            transition: background 0.3s;
         }
         
         .control-group button:hover {
-            background: #0056b3;
+            border-color: #0056b3;
+            color: #0056b3;
         }
         
         .control-group button.danger {
-            background: #dc3545;
+            border-color: #dc3545;
+            color: #dc3545;
         }
         
         .control-group button.danger:hover {
-            background: #c82333;
+            border-color: #c82333;
+            color: #c82333;
         }
         
                  #map {
@@ -92,10 +93,10 @@
              position: absolute;
              top: 80px;
              right: 10px;
-             background: white;
              padding: 15px;
-             border-radius: 8px;
-             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+             border-radius: 4px;
+             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+             border: 1px solid #dee2e6;
              z-index: 1000;
              max-width: 300px;
              font-size: 14px;
@@ -103,21 +104,21 @@
         
         .info-panel h3 {
             margin: 0 0 10px 0;
-            color: #495057;
+            color: #333;
         }
         
         .info-panel p {
             margin: 5px 0;
-            color: #6c757d;
+            color: #666;
         }
         
         .status {
             position: absolute;
             bottom: 10px;
             left: 10px;
-            background: rgba(0,0,0,0.7);
-            color: white;
+            color: #333;
             padding: 8px 12px;
+            border: 1px solid #333;
             border-radius: 4px;
             font-size: 12px;
             z-index: 1000;
@@ -147,6 +148,10 @@
     </style>
 </head>
 <body>
+    <!-- 返回文档链接 -->
+    <div style="position: fixed; top: 10px; left: 10px; z-index: 2000; padding: 8px 12px; border-radius: 4px; border: 1px solid #dee2e6;">
+        <a href="https://www.siqiongbiluo.love/article/25" style="text-decoration: none; color: #007bff; font-size: 14px;">← 返回文档</a>
+    </div>
          <div class="container">
          <div class="controls">
             <div class="control-group">
@@ -191,7 +196,7 @@
     </div>
     
                                        <div class="info-panel">
-           <h3>📋 功能说明</h3>
+           <h3>功能说明</h3>
            <p><strong>图层源:</strong> 选择国内或国外地图服务</p>
            <p><strong>点击地图:</strong> 在点击位置添加标记</p>
            <p><strong>图层控制:</strong> 右上角控件切换标记显示</p>
@@ -351,7 +356,7 @@
                 // 创建自定义图标
                 const customIcon = L.divIcon({
                     className: 'custom-marker',
-                    html: '📍',
+                    html: '',
                     iconSize: [30, 30],
                     iconAnchor: [15, 30]
                 });
@@ -527,33 +532,33 @@
             const polylineBtn = document.getElementById('polylineBtn');
             
             if (drawingMode === 'circle') {
-                circleBtn.style.background = '#28a745';
-                circleBtn.style.color = 'white';
-                polygonBtn.style.background = '#007bff';
-                polygonBtn.style.color = 'white';
-                polylineBtn.style.background = '#007bff';
-                polylineBtn.style.color = 'white';
+                circleBtn.style.borderColor = '#28a745';
+                circleBtn.style.color = '#28a745';
+                polygonBtn.style.borderColor = '#007bff';
+                polygonBtn.style.color = '#007bff';
+                polylineBtn.style.borderColor = '#007bff';
+                polylineBtn.style.color = '#007bff';
             } else if (drawingMode === 'polygon') {
-                circleBtn.style.background = '#007bff';
-                circleBtn.style.color = 'white';
-                polygonBtn.style.background = '#28a745';
-                polygonBtn.style.color = 'white';
-                polylineBtn.style.background = '#007bff';
-                polylineBtn.style.color = 'white';
+                circleBtn.style.borderColor = '#007bff';
+                circleBtn.style.color = '#007bff';
+                polygonBtn.style.borderColor = '#28a745';
+                polygonBtn.style.color = '#28a745';
+                polylineBtn.style.borderColor = '#007bff';
+                polylineBtn.style.color = '#007bff';
             } else if (drawingMode === 'polyline') {
-                circleBtn.style.background = '#007bff';
-                circleBtn.style.color = 'white';
-                polygonBtn.style.background = '#007bff';
-                polygonBtn.style.color = 'white';
-                polylineBtn.style.background = '#28a745';
-                polylineBtn.style.color = 'white';
+                circleBtn.style.borderColor = '#007bff';
+                circleBtn.style.color = '#007bff';
+                polygonBtn.style.borderColor = '#007bff';
+                polygonBtn.style.color = '#007bff';
+                polylineBtn.style.borderColor = '#28a745';
+                polylineBtn.style.color = '#28a745';
             } else {
-                circleBtn.style.background = '#007bff';
-                circleBtn.style.color = 'white';
-                polygonBtn.style.background = '#007bff';
-                polygonBtn.style.color = 'white';
-                polylineBtn.style.background = '#007bff';
-                polylineBtn.style.color = 'white';
+                circleBtn.style.borderColor = '#007bff';
+                circleBtn.style.color = '#007bff';
+                polygonBtn.style.borderColor = '#007bff';
+                polygonBtn.style.color = '#007bff';
+                polylineBtn.style.borderColor = '#007bff';
+                polylineBtn.style.color = '#007bff';
             }
         }
         
@@ -668,4 +673,4 @@
         updateStatus('地图已加载完成');
     </script>
 </body>
-</html> 
+</html>

@@ -2,7 +2,11 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>CSS Flexbox 可视化演示</title>
     <style>
         * {
@@ -12,11 +16,18 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             line-height: 1.6;
-            color: #1a202c;
+            color: #333;
             background: #ffffff;
-            padding: 16px;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
         }
 
         .container {
@@ -24,49 +35,84 @@
             margin: 0 auto;
             background: white;
             padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
         }
 
         h1 {
             text-align: center;
-            color: #1a202c;
+            color: #333;
             margin-bottom: 30px;
-            font-size: 2.5em;
-            font-weight: 700;
+            font-size: 2rem;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+                margin-bottom: 20px;
+            }
         }
 
         h2 {
             color: #333;
             margin: 30px 0 15px 0;
             padding-bottom: 8px;
-            border-bottom: 1px solid #ddd;
-            font-size: 1.4em;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 1.3rem;
             font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            h2 {
+                font-size: 1.2rem;
+                margin: 20px 0 10px 0;
+            }
         }
 
         h3 {
-            color: #555;
+            color: #333;
             margin: 20px 0 10px 0;
-            font-size: 1.1em;
+            font-size: 1.1rem;
             font-weight: 500;
         }
 
+        @media (max-width: 768px) {
+            h3 {
+                font-size: 1rem;
+                margin: 15px 0 8px 0;
+            }
+        }
+
         .demo-section {
-            margin: 30px 0;
-            padding: 20px;
-            border-radius: 4px;
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
+            margin: 32px 0;
+            padding: 20px 16px;
+            border-radius: 16px;
+            background: #ffffff;
+            box-shadow: 0 4px 16px rgba(33,150,243,0.08);
+            border: 1px solid #e3eaf2;
+        }
+
+        @media (max-width: 768px) {
+            .demo-section {
+                margin: 20px 0;
+                padding: 15px;
+            }
         }
 
         .demo-container {
-            background: #e9ecef;
+            background: #f8f9fa;
             padding: 15px;
-            margin: 15px 0;
+            margin: 12px 0;
             border-radius: 4px;
-            min-height: 80px;
-            border: 1px dashed #6c757d;
+            min-height: 70px;
+            border: 1px solid #dee2e6;
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
@@ -74,50 +120,97 @@
             justify-content: flex-start;
         }
 
+        @media (max-width: 768px) {
+            .demo-container {
+                padding: 12px;
+                margin: 10px 0;
+                min-height: 60px;
+                gap: 8px;
+            }
+        }
+
         .demo-item {
             background: #007bff;
             color: white;
-            padding: 15px;
+            padding: 15px 0;
+            margin: 0 5px;
             border-radius: 4px;
             text-align: center;
-            font-weight: 400;
-            min-width: 100px;
+            font-weight: 500;
+            min-width: 90px;
             min-height: 40px;
-            font-size: 14px;
-            flex: 1 1 100px;
+            font-size: 1em;
+            flex: 1 1 90px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        .demo-item:nth-child(2) { background: #6c757d; }
-        .demo-item:nth-child(3) { background: #28a745; }
-        .demo-item:nth-child(4) { background: #ffc107; color: #212529; }
-        .demo-item:nth-child(5) { background: #dc3545; }
-        .demo-item:nth-child(6) { background: #6f42c1; }
 
-        .tall-item { height: 60px; line-height: 30px; }
-        .small-item { height: 30px; line-height: 30px; font-size: 13px; }
-        .large-item { height: 80px; line-height: 40px; font-size: 18px; }
+        @media (max-width: 768px) {
+            .demo-item {
+                padding: 12px 0;
+                margin: 0 4px;
+                min-width: 70px;
+                min-height: 35px;
+                font-size: 0.9em;
+                flex: 1 1 70px;
+            }
+        }
+
+        .demo-item:nth-child(2) { background: #0056b3; }
+        .demo-item:nth-child(3) { background: #6c757d; }
+        .demo-item:nth-child(4) { background: #28a745; }
+        .demo-item:nth-child(5) { background: #ffc107; color: #333; }
+        .demo-item:nth-child(6) { background: #dc3545; }
+
+        .tall-item { height: 50px; line-height: 25px; }
+        .small-item { height: 25px; line-height: 25px; font-size: 12px; }
+        .large-item { height: 70px; line-height: 35px; font-size: 16px; }
+
+        /* 移动端特殊项目适配 */
+        @media (max-width: 768px) {
+            .tall-item { height: 40px; line-height: 20px; }
+            .small-item { height: 20px; line-height: 20px; font-size: 11px; }
+            .large-item { height: 60px; line-height: 30px; font-size: 14px; }
+        }
 
         .code-block {
             background: #f8f9fa;
             color: #333;
             padding: 15px;
-            border: 1px solid #dee2e6;
             border-radius: 4px;
-            margin: 15px 0;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
+            margin: 10px 0;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.9em;
             overflow-x: auto;
+            border: 1px solid #dee2e6;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            .code-block {
+                padding: 12px;
+                font-size: 0.85em;
+                white-space: normal;
+                word-break: break-all;
+            }
         }
 
         .description {
-            background: #f8f9fa;
-            padding: 15px;
-            border-left: 3px solid #007bff;
-            margin: 15px 0;
-            border-radius: 4px;
-            font-size: 14px;
+            background: #e3f2fd;
+            padding: 12px 16px;
+            border-left: 4px solid #1976d2;
+            margin: 10px 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95em;
+        }
+
+        /* 移动端描述文本适配 */
+        @media (max-width: 768px) {
+            .description {
+                padding: 10px 14px;
+                font-size: 0.9em;
+            }
         }
 
         .flex-row { display: flex; }
@@ -160,35 +253,78 @@
         .layout-example {
             margin: 20px 0;
             padding: 20px;
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        /* 移动端布局示例适配 */
+        @media (max-width: 768px) {
+            .layout-example {
+                margin: 16px 0;
+                padding: 16px;
+            }
         }
 
         .navbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #343a40;
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
             color: white;
             padding: 15px;
-            border-radius: 4px;
+            border-radius: 8px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* 移动端导航栏适配 */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                padding: 12px;
+                gap: 8px;
+            }
         }
 
         .nav-links {
             display: flex;
             gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* 移动端导航链接适配 */
+        @media (max-width: 768px) {
+            .nav-links {
+                gap: 8px;
+                width: 100%;
+            }
         }
 
         .nav-links a {
             color: white;
             text-decoration: none;
             padding: 8px 15px;
-            border-radius: 4px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.1);
+            font-size: 0.9em;
+        }
+
+        /* 移动端导航链接适配 */
+        @media (max-width: 768px) {
+            .nav-links a {
+                padding: 6px 12px;
+                font-size: 0.85em;
+                flex: 1;
+                text-align: center;
+            }
         }
 
         .nav-links a:hover {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-1px);
         }
 
         .card-grid {
@@ -197,48 +333,118 @@
             gap: 15px;
         }
 
+        /* 移动端卡片网格适配 */
+        @media (max-width: 768px) {
+            .card-grid {
+                gap: 12px;
+            }
+        }
+
         .card {
             flex: 1 1 200px;
             background: white;
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            border: 1px solid #ddd;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+
+        /* 移动端卡片适配 */
+        @media (max-width: 768px) {
+            .card {
+                flex: 1 1 100%;
+                padding: 16px;
+                border-radius: 10px;
+            }
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
         }
 
         .sidebar-layout {
             display: flex;
             min-height: 200px;
+            flex-wrap: wrap;
+        }
+
+        /* 移动端侧边栏布局适配 */
+        @media (max-width: 768px) {
+            .sidebar-layout {
+                flex-direction: column;
+                min-height: auto;
+            }
         }
 
         .sidebar {
             flex: 0 0 200px;
-            background: #34495e;
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
             color: white;
             padding: 20px;
-            border-radius: 5px 0 0 5px;
+            border-radius: 8px 0 0 8px;
+        }
+
+        /* 移动端侧边栏适配 */
+        @media (max-width: 768px) {
+            .sidebar {
+                flex: none;
+                border-radius: 8px 8px 0 0;
+                padding: 16px;
+            }
         }
 
         .main-content {
             flex: 1;
             background: #ecf0f1;
             padding: 20px;
-            border-radius: 0 5px 5px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* 移动端主内容区域适配 */
+        @media (max-width: 768px) {
+            .main-content {
+                border-radius: 0 0 8px 8px;
+                padding: 16px;
+            }
         }
 
         .responsive-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 12px;
+        }
+
+        /* 移动端响应式网格适配 */
+        @media (max-width: 768px) {
+            .responsive-grid {
+                gap: 8px;
+            }
         }
 
         .responsive-item {
             flex: 1 1 100%;
-            background: #3498db;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
             color: white;
             padding: 15px;
-            border-radius: 5px;
+            border-radius: 8px;
             text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(52,152,219,0.2);
+        }
+
+        /* 移动端响应式项目适配 */
+        @media (max-width: 768px) {
+            .responsive-item {
+                padding: 12px;
+                font-size: 0.9em;
+            }
+        }
+
+        .responsive-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(52,152,219,0.3);
         }
 
         @media (min-width: 768px) {
@@ -252,13 +458,89 @@
                 flex: 1 1 30%;
             }
         }
+
+        /* 深色模式支持 */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            }
+            
+            .container {
+                background-color: #2c3e50;
+                color: #ecf0f1;
+            }
+            
+            h1, h2, h3 {
+                color: #ecf0f1;
+            }
+            
+            .demo-section {
+                background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+                border-color: #7f8c8d;
+            }
+            
+            .demo-container {
+                background: #34495e;
+                border-color: #7f8c8d;
+            }
+            
+            .description {
+                background: #34495e;
+                border-color: #7f8c8d;
+            }
+            
+            .code-block {
+                background: #1a1a1a;
+                color: #e3f2fd;
+            }
+            
+            .card {
+                background: #34495e;
+                color: #ecf0f1;
+                border-color: #7f8c8d;
+            }
+            
+            .main-content {
+                background: #34495e;
+                color: #ecf0f1;
+            }
+        }
+
+        /* 触摸设备优化 */
+        @media (hover: none) and (pointer: coarse) {
+            .demo-item:hover,
+            .card:hover,
+            .responsive-item:hover,
+            .nav-links a:hover {
+                transform: none;
+            }
+            
+            .demo-item:active,
+            .card:active,
+            .responsive-item:active,
+            .nav-links a:active {
+                transform: scale(0.98);
+            }
+        }
+
+        /* 横屏模式优化 */
+        @media (orientation: landscape) and (max-width: 768px) {
+            .container {
+                max-width: 95vw;
+            }
+            
+            .demo-container {
+                min-height: 50px;
+            }
+            
+            .demo-item {
+                min-height: 30px;
+                padding: 8px 0;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- 返回文档链接 -->
-    <div style="position: fixed; top: 20px; left: 20px; z-index: 2000; background: rgba(255, 255, 255, 0.95); padding: 8px 12px; border-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
-        <a href="https://www.siqiongbiluo.love/article/14" style="text-decoration: none; color: #1976d2; font-size: 14px; font-weight: 500;">← 返回文档</a>
-    </div>
     <div class="container">
         <h1>CSS Flexbox 可视化演示</h1>
 
@@ -367,7 +649,7 @@
             <div class="code-block">align-items: stretch;</div>
             <div class="demo-container flex-row align-stretch" style="height: 100px;">
                 <div class="demo-item">Item1</div>
-                <div class="demo-item tall-item">Item2<br>更高</div>
+                <div class="demo-item tall-item">Item2</div>
                 <div class="demo-item">Item3</div>
             </div>
 
@@ -375,7 +657,7 @@
             <div class="code-block">align-items: flex-start;</div>
             <div class="demo-container flex-row align-start" style="height: 100px;">
                 <div class="demo-item">Item1</div>
-                <div class="demo-item tall-item">Item2<br>更高</div>
+                <div class="demo-item tall-item">Item2</div>
                 <div class="demo-item">Item3</div>
             </div>
 
@@ -383,7 +665,7 @@
             <div class="code-block">align-items: flex-end;</div>
             <div class="demo-container flex-row align-end" style="height: 100px;">
                 <div class="demo-item">Item1</div>
-                <div class="demo-item tall-item">Item2<br>更高</div>
+                <div class="demo-item tall-item">Item2</div>
                 <div class="demo-item">Item3</div>
             </div>
 
@@ -391,7 +673,7 @@
             <div class="code-block">align-items: center;</div>
             <div class="demo-container flex-row align-center" style="height: 100px;">
                 <div class="demo-item">Item1</div>
-                <div class="demo-item tall-item">Item2<br>更高</div>
+                <div class="demo-item tall-item">Item2</div>
                 <div class="demo-item">Item3</div>
             </div>
 
@@ -399,8 +681,8 @@
             <div class="code-block">align-items: baseline;</div>
             <div class="demo-container flex-row align-baseline" style="height: 100px;">
                 <div class="demo-item">Item1</div>
-                <div class="demo-item large-item">Item2</div>
-                <div class="demo-item small-item">Item3</div>
+                <div class="demo-item tall-item">Item2</div>
+                <div class="demo-item">Item3</div>
             </div>
         </div>
 
@@ -446,10 +728,10 @@
         <!-- Flex Grow -->
         <div class="demo-section">
             <h2>flex-grow 属性</h2>
-            <p class="description">控制Flex项目的放大比例</p>
+            <p class="description">控制Flex项目的增长比例</p>
 
-            <h3>flex-grow: 0（默认）</h3>
-            <div class="code-block">flex-grow: 0;</div>
+            <h3>默认增长</h3>
+            <div class="code-block">flex-grow: 0; (默认)</div>
             <div class="demo-container flex-row">
                 <div class="demo-item">Item1</div>
                 <div class="demo-item">Item2</div>
@@ -464,22 +746,22 @@
                 <div class="demo-item flex-grow-1">Item3</div>
             </div>
 
-            <h3>flex-grow: 2</h3>
-            <div class="code-block">flex-grow: 2;</div>
+            <h3>不同增长比例</h3>
+            <div class="code-block">flex-grow: 1, 2, 1;</div>
             <div class="demo-container flex-row">
-                <div class="demo-item">Item1</div>
+                <div class="demo-item flex-grow-1">Item1</div>
                 <div class="demo-item flex-grow-2">Item2</div>
-                <div class="demo-item">Item3</div>
+                <div class="demo-item flex-grow-1">Item3</div>
             </div>
         </div>
 
         <!-- Order -->
         <div class="demo-section">
             <h2>order 属性</h2>
-            <p class="description">控制Flex项目的排列顺序</p>
+            <p class="description">控制Flex项目的显示顺序</p>
 
             <h3>默认顺序</h3>
-            <div class="code-block">order: 0;</div>
+            <div class="code-block">order: 0; (默认)</div>
             <div class="demo-container flex-row">
                 <div class="demo-item">Item1</div>
                 <div class="demo-item">Item2</div>
@@ -488,21 +770,12 @@
             </div>
 
             <h3>自定义顺序</h3>
-            <div class="code-block">order: 1, 2, 3, 4;</div>
+            <div class="code-block">order: 4, 1, 3, 2;</div>
             <div class="demo-container flex-row">
                 <div class="demo-item order-1">Item1</div>
                 <div class="demo-item order-2">Item2</div>
                 <div class="demo-item order-3">Item3</div>
                 <div class="demo-item order-4">Item4</div>
-            </div>
-
-            <h3>反向顺序</h3>
-            <div class="code-block">order: 4, 3, 2, 1;</div>
-            <div class="demo-container flex-row">
-                <div class="demo-item order-4">Item1</div>
-                <div class="demo-item order-3">Item2</div>
-                <div class="demo-item order-2">Item3</div>
-                <div class="demo-item order-1">Item4</div>
             </div>
         </div>
 
@@ -541,8 +814,8 @@
             <h2>实际布局示例</h2>
             <p class="description">Flexbox在实际项目中的应用</p>
 
-            <h3>导航栏布局</h3>
-            <div class="code-block">display: flex; justify-content: space-between; align-items: center;</div>
+            <h3>响应式导航栏</h3>
+            <div class="code-block">display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;</div>
             <div class="navbar">
                 <div class="logo">Logo</div>
                 <div class="nav-links">
@@ -553,25 +826,25 @@
                 </div>
             </div>
 
-            <h3>卡片网格布局</h3>
+            <h3>响应式卡片网格</h3>
             <div class="code-block">display: flex; flex-wrap: wrap; gap: 15px;</div>
             <div class="card-grid">
                 <div class="card">
                     <h4>卡片1</h4>
-                    <p>这是第一个卡片的内容</p>
+                    <p>这是第一个卡片的内容，展示Flexbox的强大功能</p>
                 </div>
                 <div class="card">
                     <h4>卡片2</h4>
-                    <p>这是第二个卡片的内容</p>
+                    <p>这是第二个卡片的内容，支持响应式布局</p>
                 </div>
                 <div class="card">
                     <h4>卡片3</h4>
-                    <p>这是第三个卡片的内容</p>
+                    <p>这是第三个卡片的内容，自动适应屏幕大小</p>
                 </div>
             </div>
 
-            <h3>侧边栏布局</h3>
-            <div class="code-block">display: flex; sidebar: flex: 0 0 200px; main: flex: 1;</div>
+            <h3>响应式侧边栏布局</h3>
+            <div class="code-block">display: flex; sidebar: flex: 0 0 200px; main: flex: 1; flex-wrap: wrap;</div>
             <div class="sidebar-layout">
                 <div class="sidebar">
                     <h4>侧边栏</h4>
@@ -583,11 +856,11 @@
                 </div>
                 <div class="main-content">
                     <h4>主内容区域</h4>
-                    <p>这是主要内容区域，会自动占据剩余空间。</p>
+                    <p>这是主要内容区域，会自动占据剩余空间。在移动端会自动调整为垂直布局。</p>
                 </div>
             </div>
 
-            <h3>响应式布局</h3>
+            <h3>完全响应式网格</h3>
             <div class="code-block">flex: 1 1 100%; @media (min-width: 768px) { flex: 1 1 45%; } @media (min-width: 1024px) { flex: 1 1 30%; }</div>
             <div class="responsive-grid">
                 <div class="responsive-item">响应式项目1</div>
@@ -603,7 +876,8 @@
             <h2>总结</h2>
             <p class="description">
                 Flexbox是现代CSS布局的强大工具，通过合理使用这些属性，可以轻松创建响应式、自适应的页面布局。
-                记住主轴和交叉轴的概念，以及各种属性对布局的影响。
+                记住主轴和交叉轴的概念，以及各种属性对布局的影响。这个演示页面已经完全适配移动端，
+                在不同设备上都能提供良好的用户体验。
             </p>
         </div>
     </div>

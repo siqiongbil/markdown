@@ -26,34 +26,40 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
             line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #1a202c;
+            background: #ffffff;
             min-height: 100vh;
+            padding: 16px;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
         }
 
         .header {
             text-align: center;
             margin-bottom: 40px;
-            color: white;
+            background: #ffffff;
+            color: #1a202c;
+            padding: 40px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
         }
 
         .header h1 {
-            font-size: 2.5rem;
+            font-size: 2.5em;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            color: #1a202c;
+            font-weight: 700;
         }
 
         .header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
+            font-size: 1.1rem;
+            color: #666;
         }
 
         .demo-grid {
@@ -67,21 +73,16 @@
             background: white;
             border-radius: 12px;
             padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .demo-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid #dee2e6;
         }
 
         .demo-title {
-            color: #4f46e5;
-            font-size: 1.3rem;
-            font-weight: 600;
+            color: #333;
+            font-size: 1.2rem;
+            font-weight: 500;
             margin-bottom: 15px;
-            border-bottom: 2px solid #e5e7eb;
+            border-bottom: 1px solid #dee2e6;
             padding-bottom: 8px;
         }
 
@@ -103,44 +104,37 @@
         input, textarea, select {
             width: 100%;
             padding: 10px;
-            border: 2px solid #e5e7eb;
-            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
             font-size: 14px;
-            transition: border-color 0.3s ease;
         }
 
         input:focus, textarea:focus, select:focus {
             outline: none;
-            border-color: #4f46e5;
+            border-color: #007bff;
         }
 
         .btn {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: white;
-            border: none;
+            color: #007bff;
+            border: 1px solid #007bff;
+            background: transparent;
             padding: 10px 20px;
-            border-radius: 6px;
+            border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s ease;
+            font-weight: 400;
             margin: 5px;
         }
 
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(79, 70, 229, 0.4);
-        }
-
-        .btn:active {
-            transform: translateY(0);
+            border-color: #0056b3;
+            color: #0056b3;
         }
 
         .result {
-            background: #f8fafc;
+            border: 1px solid #f8f9fa;
             padding: 15px;
-            border-radius: 6px;
-            border-left: 4px solid #4f46e5;
+            border-radius: 4px;
             margin-top: 15px;
             font-family: 'Courier New', monospace;
         }
@@ -155,7 +149,7 @@
         .counter-display {
             font-size: 2rem;
             font-weight: bold;
-            color: #4f46e5;
+            color: #007bff;
             min-width: 60px;
             text-align: center;
         }
@@ -165,10 +159,9 @@
             align-items: center;
             gap: 10px;
             padding: 10px;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
             margin-bottom: 10px;
-            background: #f9fafb;
         }
 
         .todo-item.completed {
@@ -181,11 +174,10 @@
         }
 
         .book-list li {
-            background: #f0f9ff;
             padding: 8px 12px;
             margin: 5px 0;
             border-radius: 4px;
-            border-left: 3px solid #0ea5e9;
+            border: 1px solid #dee2e6;
         }
 
         .status-indicator {
@@ -196,9 +188,9 @@
             margin-right: 8px;
         }
 
-        .status-online { background-color: #10b981; }
-        .status-offline { background-color: #ef4444; }
-        .status-away { background-color: #f59e0b; }
+        .status-online { border: 2px solid #10b981; }
+        .status-offline { border: 2px solid #ef4444; }
+        .status-away { border: 2px solid #f59e0b; }
 
         @media (max-width: 768px) {
             .demo-grid {
@@ -206,7 +198,7 @@
             }
             
             .header h1 {
-                font-size: 2rem;
+                font-size: 1.8rem;
             }
             
             .counter {
@@ -217,11 +209,15 @@
     </style>
 </head>
 <body>
+    <!-- 返回文档链接 -->
+    <div style="position: fixed; top: 10px; left: 10px; z-index: 2000; background: white; padding: 8px 12px; border-radius: 4px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); border: 1px solid #dee2e6;">
+        <a href="https://www.siqiongbiluo.love/article/17" style="text-decoration: none; color: #007bff; font-size: 14px;">← 返回文档</a>
+    </div>
     <div id="app">
         <div class="container">
             <!-- 页面头部 -->
             <div class="header">
-                <h1>🎯 Vue3 学习笔记 Demo</h1>
+                <h1>Vue3 学习笔记 Demo</h1>
                 <p>实践 Vue3 的核心特性和组合式API</p>
             </div>
 
@@ -229,7 +225,7 @@
             <div class="demo-grid">
                 <!-- 1. 响应式系统 - ref & reactive -->
                 <div class="demo-card">
-                    <h3 class="demo-title">📊 响应式系统</h3>
+                    <h3 class="demo-title">响应式系统</h3>
                     <div class="demo-content">
                         <div class="input-group">
                             <label>消息 (ref):</label>
@@ -255,7 +251,7 @@
 
                 <!-- 2. 计数器 - 事件处理 -->
                 <div class="demo-card">
-                    <h3 class="demo-title">🔢 计数器 & 事件处理</h3>
+                    <h3 class="demo-title">计数器 & 事件处理</h3>
                     <div class="demo-content">
                         <div class="counter">
                             <button class="btn" @click="decrement">-</button>
@@ -274,7 +270,7 @@
 
                 <!-- 3. 计算属性 -->
                 <div class="demo-card">
-                    <h3 class="demo-title">⚡ 计算属性</h3>
+                    <h3 class="demo-title">计算属性</h3>
                     <div class="demo-content">
                         <div class="input-group">
                             <label>名字:</label>
@@ -298,7 +294,7 @@
 
                 <!-- 4. 列表渲染 & v-for -->
                 <div class="demo-card">
-                    <h3 class="demo-title">📋 Todo 列表</h3>
+                    <h3 class="demo-title">Todo 列表</h3>
                     <div class="demo-content">
                         <div class="input-group">
                             <input v-model="newTodo" @keyup.enter="addTodo" placeholder="按回车添加待办事项...">
@@ -322,7 +318,7 @@
 
                 <!-- 5. 表单绑定 & v-model -->
                 <div class="demo-card">
-                    <h3 class="demo-title">📝 表单绑定</h3>
+                    <h3 class="demo-title">表单绑定</h3>
                     <div class="demo-content">
                         <div class="input-group">
                             <label>单选框:</label>
@@ -365,7 +361,7 @@
 
                 <!-- 6. 侦听器 -->
                 <div class="demo-card">
-                    <h3 class="demo-title">👀 侦听器</h3>
+                    <h3 class="demo-title">侦听器</h3>
                     <div class="demo-content">
                         <div class="input-group">
                             <label>搜索问题 (包含'?'会触发搜索):</label>
@@ -397,7 +393,7 @@
 
                 <!-- 7. 条件渲染 -->
                 <div class="demo-card">
-                    <h3 class="demo-title">🎭 条件渲染</h3>
+                    <h3 class="demo-title">条件渲染</h3>
                     <div class="demo-content">
                         <div style="text-align: center; margin-bottom: 20px;">
                             <button class="btn" @click="toggleVisibility">{{ isVisible ? '隐藏' : '显示' }}内容</button>
@@ -406,28 +402,28 @@
                         
                         <div v-if="isVisible" class="result">
                             <div v-if="currentView === 'profile'">
-                                <h4>👤 用户资料</h4>
+                                <h4>用户资料</h4>
                                 <p>这是用户资料页面</p>
                             </div>
                             <div v-else-if="currentView === 'settings'">
-                                <h4>⚙️ 设置页面</h4>
+                                <h4>设置页面</h4>
                                 <p>这是设置页面</p>
                             </div>
                             <div v-else>
-                                <h4>🏠 首页</h4>
+                                <h4>首页</h4>
                                 <p>欢迎来到首页</p>
                             </div>
                         </div>
                         
                         <div v-else class="result">
-                            <p style="color: #6b7280;">内容已隐藏 🙈</p>
+                            <p style="color: #6b7280;">内容已隐藏</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- 8. 图书管理示例 -->
                 <div class="demo-card">
-                    <h3 class="demo-title">📚 图书管理</h3>
+                    <h3 class="demo-title">图书管理</h3>
                     <div class="demo-content">
                         <div class="input-group">
                             <label>添加图书:</label>
@@ -459,7 +455,7 @@
         function initApp() {
             if (typeof Vue === 'undefined') {
                 console.error('Vue.js 未能正确加载，请检查网络连接');
-                document.getElementById('app').innerHTML = '<div style="text-align: center; padding: 50px; color: red;"><h2>❌ Vue.js 加载失败</h2><p>请检查网络连接并刷新页面重试</p></div>';
+                document.getElementById('app').innerHTML = '<div style="text-align: center; padding: 50px; color: red;"><h2>Vue.js 加载失败</h2><p>请检查网络连接并刷新页面重试</p></div>';
                 return;
             }
 
@@ -565,7 +561,7 @@
 
                 // 侦听器
                 const question = ref('');
-                const answer = ref('问题通常包含问号 😊');
+                const answer = ref('问题通常包含问号');
                 const userStatus = ref('online');
                 const statusLogs = ref([
                     { id: 1, status: 'online', message: '用户上线 - ' + new Date().toLocaleTimeString() }
@@ -578,9 +574,9 @@
                         setTimeout(() => {
                             const responses = [
                                 '这是一个很好的问题！',
-                                '答案可能是肯定的 ✅',
-                                '这需要进一步思考 🤔',
-                                '答案在Vue文档中可以找到 📚'
+                                '答案可能是肯定的',
+                                '这需要进一步思考',
+                                '答案在Vue文档中可以找到'
                             ];
                             answer.value = responses[Math.floor(Math.random() * responses.length)];
                         }, 1000);
@@ -710,4 +706,4 @@
         }
     </script>
 </body>
-</html> 
+</html>

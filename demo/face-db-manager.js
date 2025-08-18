@@ -401,10 +401,10 @@ class FaceDBManager {
                 })
                 
                 results.indexedDB = true
-                console.log('✅ IndexedDB 已清除')
+                console.log('IndexedDB 已清除')
             } catch (error) {
                 results.errors.push(`IndexedDB清除失败: ${error.message}`)
-                console.error('❌ IndexedDB 清除失败:', error)
+                console.error('IndexedDB 清除失败:', error)
             }
 
             // 2. 清除 LocalStorage
@@ -426,10 +426,10 @@ class FaceDBManager {
                 
                 keysToRemove.forEach(key => localStorage.removeItem(key))
                 results.localStorage = true
-                console.log(`✅ LocalStorage 已清除 (${keysToRemove.length} 项)`)
+                console.log(`LocalStorage 已清除 (${keysToRemove.length} 项)`)
             } catch (error) {
                 results.errors.push(`LocalStorage清除失败: ${error.message}`)
-                console.error('❌ LocalStorage 清除失败:', error)
+                console.error('LocalStorage 清除失败:', error)
             }
 
             // 3. 清除 SessionStorage
@@ -448,10 +448,10 @@ class FaceDBManager {
                 
                 sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key))
                 results.sessionStorage = true
-                console.log(`✅ SessionStorage 已清除 (${sessionKeysToRemove.length} 项)`)
+                console.log(`SessionStorage 已清除 (${sessionKeysToRemove.length} 项)`)
             } catch (error) {
                 results.errors.push(`SessionStorage清除失败: ${error.message}`)
-                console.error('❌ SessionStorage 清除失败:', error)
+                console.error('SessionStorage 清除失败:', error)
             }
 
             // 4. 清除 Cache API (PWA 缓存)
@@ -461,13 +461,13 @@ class FaceDBManager {
                     const deletePromises = cacheNames.map(name => caches.delete(name))
                     await Promise.all(deletePromises)
                     results.cacheAPI = true
-                    console.log(`✅ Cache API 已清除 (${cacheNames.length} 个缓存)`)
+                    console.log(`Cache API 已清除 (${cacheNames.length} 个缓存)`)
                 } else {
                     results.cacheAPI = true // 不支持则标记为成功
                 }
             } catch (error) {
                 results.errors.push(`Cache API清除失败: ${error.message}`)
-                console.error('❌ Cache API 清除失败:', error)
+                console.error('Cache API 清除失败:', error)
             }
 
             // 5. 注销 Service Worker
@@ -477,13 +477,13 @@ class FaceDBManager {
                     const unregisterPromises = registrations.map(registration => registration.unregister())
                     await Promise.all(unregisterPromises)
                     results.serviceWorker = true
-                    console.log(`✅ Service Worker 已注销 (${registrations.length} 个)`)
+                    console.log(`Service Worker 已注销 (${registrations.length} 个)`)
                 } else {
                     results.serviceWorker = true // 不支持则标记为成功
                 }
             } catch (error) {
                 results.errors.push(`Service Worker清除失败: ${error.message}`)
-                console.error('❌ Service Worker 清除失败:', error)
+                console.error('Service Worker 清除失败:', error)
             }
 
             // 6. 清除相关 Cookies (仅限同域)
@@ -506,15 +506,15 @@ class FaceDBManager {
                 })
                 
                 results.cookies = true
-                console.log(`✅ Cookies 已清除 (${clearedCount} 个)`)
+                console.log(`Cookies 已清除 (${clearedCount} 个)`)
             } catch (error) {
                 results.errors.push(`Cookies清除失败: ${error.message}`)
-                console.error('❌ Cookies 清除失败:', error)
+                console.error('Cookies 清除失败:', error)
             }
 
         } catch (error) {
             results.errors.push(`清除过程中发生未知错误: ${error.message}`)
-            console.error('❌ 清除过程中发生未知错误:', error)
+            console.error('清除过程中发生未知错误:', error)
         }
 
         return results
@@ -588,4 +588,4 @@ window.faceDB = new FaceDBManager()
 // 导出供模块使用
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = FaceDBManager
-} 
+}

@@ -6,7 +6,7 @@
 window.DebugHelper = {
     // 检查系统状态
     checkSystemStatus() {
-        console.log('🔍 开始系统状态检查...')
+        console.log('开始系统状态检查...')
         
         const status = {
             faceDB: !!window.faceDB,
@@ -17,19 +17,19 @@ window.DebugHelper = {
             timestamp: new Date().toISOString()
         }
         
-        console.log('📋 系统状态:', status)
+        console.log('系统状态:', status)
         
         // 检查关键组件
         if (!status.faceDB) {
-            console.error('❌ FaceDB 数据库管理器未初始化')
+            console.error('FaceDB 数据库管理器未初始化')
         }
         
         if (!status.faceAPI) {
-            console.error('❌ face-api.js 未加载')
+            console.error('face-api.js 未加载')
         }
         
         if (!status.indexedDB) {
-            console.error('❌ IndexedDB 不可用')
+            console.error('IndexedDB 不可用')
         }
         
         return status
@@ -37,7 +37,7 @@ window.DebugHelper = {
     
     // 检查Vue应用状态
     checkVueAppStatus() {
-        console.log('🔍 检查Vue应用状态...')
+        console.log('检查Vue应用状态...')
         
         try {
             const app = document.querySelector('#app').__vue__
@@ -54,43 +54,43 @@ window.DebugHelper = {
                 videoReadyState: app.$refs.video ? app.$refs.video.readyState : 'not found'
             }
             
-            console.log('📱 Vue应用状态:', appStatus)
+            console.log('Vue应用状态:', appStatus)
             
             // 检查关键状态
             if (!appStatus.modelsLoaded) {
-                console.warn('⚠️ AI模型尚未加载完成')
+                console.warn('AI模型尚未加载完成')
             }
             
             if (!appStatus.isRunning) {
-                console.warn('⚠️ 摄像头未启动')
+                console.warn('摄像头未启动')
             }
             
             if (appStatus.faceDataLength === 0) {
-                console.warn('⚠️ 未检测到人脸')
+                console.warn('未检测到人脸')
             }
             
             if (!appStatus.hasVideoRef) {
-                console.warn('⚠️ 视频元素引用缺失')
+                console.warn('视频元素引用缺失')
             }
             
             if (appStatus.showAddDialog && !appStatus.hasCaptureCanvasRef) {
-                console.warn('⚠️ 对话框显示但canvas元素引用缺失')
+                console.warn('对话框显示但canvas元素引用缺失')
             }
             
             return appStatus
         } catch (error) {
-            console.error('❌ 无法访问Vue应用:', error)
+            console.error('无法访问Vue应用:', error)
             return null
         }
     },
     
     // 检查数据库状态
     async checkDatabaseStatus() {
-        console.log('🔍 检查数据库状态...')
+        console.log('检查数据库状态...')
         
         try {
             if (!window.faceDB) {
-                console.error('❌ FaceDB未初始化')
+                console.error('FaceDB未初始化')
                 return null
             }
             
@@ -104,10 +104,10 @@ window.DebugHelper = {
                 storageQuota: window.faceDB.formatBytes(usage.quota)
             }
             
-            console.log('🗄️ 数据库状态:', dbStatus)
+            console.log('数据库状态:', dbStatus)
             return dbStatus
         } catch (error) {
-            console.error('❌ 数据库检查失败:', error)
+            console.error('数据库检查失败:', error)
             return null
         }
     },
@@ -120,18 +120,18 @@ window.DebugHelper = {
             const app = document.querySelector('#app').__vue__
             
             if (!app) {
-                console.error('❌ 无法访问Vue应用')
+                console.error('无法访问Vue应用')
                 return false
             }
             
             // 检查前置条件
             if (!app.isRunning) {
-                console.error('❌ 摄像头未启动')
+                console.error('摄像头未启动')
                 return false
             }
             
             if (app.faceData.length === 0) {
-                console.error('❌ 未检测到人脸')
+                console.error('未检测到人脸')
                 return false
             }
             
@@ -146,25 +146,25 @@ window.DebugHelper = {
                 source: 'debug'
             }
             
-            console.log('📋 测试人脸数据:', testFace)
+            console.log('测试人脸数据:', testFace)
             
             // 尝试保存到数据库
             if (app.faceDB) {
                 const savedFace = await app.faceDB.addFace(testFace)
-                console.log('✅ 测试保存成功:', savedFace.id)
+                console.log('测试保存成功:', savedFace.id)
                 
                 // 验证保存
                 const allFaces = await app.faceDB.getAllFaces()
-                console.log('🔍 验证：数据库中的人脸总数:', allFaces.length)
+                console.log('验证：数据库中的人脸总数:', allFaces.length)
                 
                 return true
             } else {
-                console.error('❌ FaceDB未初始化')
+                console.error('FaceDB未初始化')
                 return false
             }
             
         } catch (error) {
-            console.error('❌ 模拟操作失败:', error)
+            console.error('模拟操作失败:', error)
             return false
         }
     },
@@ -187,11 +187,11 @@ window.DebugHelper = {
         const simulationResult = await this.simulateAddFace()
         
         console.log('='.repeat(50))
-        console.log('📊 诊断报告:')
-        console.log('系统组件:', systemStatus ? '✅ 正常' : '❌ 异常')
-        console.log('Vue应用:', appStatus ? '✅ 正常' : '❌ 异常')
-        console.log('数据库:', dbStatus ? '✅ 正常' : '❌ 异常')
-        console.log('功能测试:', simulationResult ? '✅ 通过' : '❌ 失败')
+        console.log('诊断报告:')
+        console.log('系统组件:', systemStatus ? '正常' : '异常')
+        console.log('Vue应用:', appStatus ? '正常' : '异常')
+        console.log('数据库:', dbStatus ? '正常' : '异常')
+        console.log('功能测试:', simulationResult ? '通过' : '失败')
         console.log('='.repeat(50))
         
         // 生成建议
@@ -222,12 +222,12 @@ window.DebugHelper = {
         }
         
         if (suggestions.length > 0) {
-            console.log('💡 建议:')
+            console.log('建议:')
             suggestions.forEach((suggestion, index) => {
                 console.log(`${index + 1}. ${suggestion}`)
             })
         } else {
-            console.log('🎉 系统状态良好，如果仍有问题请手动操作测试')
+            console.log('系统状态良好，如果仍有问题请手动操作测试')
         }
         
         return {
@@ -241,7 +241,7 @@ window.DebugHelper = {
     
     // 测试canvas元素状态
     testCanvasElements() {
-        console.log('🔍 检查Canvas元素状态...')
+        console.log('检查Canvas元素状态...')
         
         try {
             const app = document.querySelector('#app').__vue__
@@ -292,22 +292,22 @@ window.DebugHelper = {
                 }
             }
             
-            console.log('🖼️ Canvas元素状态:', canvasStatus)
+            console.log('Canvas元素状态:', canvasStatus)
             
             // 给出建议
             if (!canvasStatus.videoRef.exists) {
-                console.error('❌ 视频元素不存在')
+                console.error('视频元素不存在')
             } else if (canvasStatus.videoRef.readyState < 2) {
-                console.warn('⚠️ 视频尚未准备就绪')
+                console.warn('视频尚未准备就绪')
             }
             
             if (!canvasStatus.captureCanvas.exists && canvasStatus.dialogVisible) {
-                console.error('❌ 对话框已显示但captureCanvas不存在')
+                console.error('对话框已显示但captureCanvas不存在')
             }
             
             return canvasStatus
         } catch (error) {
-            console.error('❌ Canvas状态检查失败:', error)
+            console.error('Canvas状态检查失败:', error)
             return null
         }
     },
@@ -318,23 +318,23 @@ window.DebugHelper = {
         
         try {
             if (!window.faceDB) {
-                console.log('❌ FaceDB未初始化')
+                console.log('FaceDB未初始化')
                 return
             }
             
             const allFaces = await window.faceDB.getAllFaces()
             const testFaces = allFaces.filter(face => face.source === 'debug' || face.name.includes('测试'))
             
-            console.log(`🔍 找到 ${testFaces.length} 个测试数据`)
+            console.log(`找到 ${testFaces.length} 个测试数据`)
             
             for (const face of testFaces) {
                 await window.faceDB.deleteFace(face.id)
-                console.log(`🗑️ 删除测试数据: ${face.name}`)
+                console.log(`删除测试数据: ${face.name}`)
             }
             
-            console.log('✅ 测试数据清理完成')
+            console.log('测试数据清理完成')
         } catch (error) {
-            console.error('❌ 清理失败:', error)
+            console.error('清理失败:', error)
         }
     }
 }
@@ -345,12 +345,12 @@ window.testAddFace = () => window.DebugHelper.simulateAddFace()
 window.cleanTests = () => window.DebugHelper.cleanTestData()
 window.checkCanvas = () => window.DebugHelper.testCanvasElements()
 
-console.log('🔧 调试助手已加载！')
-console.log('💡 使用方法:')
+console.log('调试助手已加载！')
+console.log('使用方法:')
 console.log('  • checkFaceSystem() - 完整系统诊断')
 console.log('  • testAddFace() - 测试添加功能')
 console.log('  • cleanTests() - 清理测试数据')
 console.log('  • checkCanvas() - 检查Canvas元素状态')
 console.log('  • DebugHelper.checkSystemStatus() - 检查系统状态')
 console.log('  • DebugHelper.checkVueAppStatus() - 检查应用状态')
-console.log('  • DebugHelper.checkDatabaseStatus() - 检查数据库状态') 
+console.log('  • DebugHelper.checkDatabaseStatus() - 检查数据库状态')

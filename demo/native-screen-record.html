@@ -7,29 +7,34 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #ffffff;
+            color: #1a202c;
             min-height: 100vh;
-            padding: 20px;
+            padding: 16px;
+            line-height: 1.6;
         }
         .container {
             max-width: 1200px;
             margin: 0 auto;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             overflow: hidden;
         }
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
             color: white;
-            padding: 30px;
+            padding: 40px 30px;
             text-align: center;
         }
         .header h1 {
             font-size: 2.5em;
-            font-weight: 300;
+            font-weight: 700;
             margin-bottom: 10px;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         .main-content {
             padding: 30px;
@@ -39,8 +44,9 @@
         }
         .control-panel, .video-panel {
             background: #f8f9fa;
-            border-radius: 15px;
+            border-radius: 8px;
             padding: 25px;
+            border: 1px solid #dee2e6;
         }
         .section-title {
             font-size: 1.5em;
@@ -49,85 +55,77 @@
             color: #333;
         }
         .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
+            border: 1px solid #007bff;
+            color: #007bff;
             padding: 12px 24px;
-            border-radius: 8px;
+            border-radius: 4px;
             font-size: 16px;
             cursor: pointer;
             margin: 5px;
+            background: transparent;
         }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
-        .btn-danger { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); }
-        .btn-success { background: linear-gradient(135deg, #51cf66 0%, #40c057 100%); }
-        .btn-warning { background: linear-gradient(135deg, #ffa726 0%, #ff9800 100%); }
+        .btn:hover { border-color: #0056b3; color: #0056b3; }
+        .btn:disabled { border-color: #ccc; color: #ccc; cursor: not-allowed; }
+        .btn-danger { border-color: #dc3545; color: #dc3545; }
+        .btn-danger:hover { border-color: #c82333; color: #c82333; }
+        .btn-success { border-color: #28a745; color: #28a745; }
+        .btn-success:hover { border-color: #218838; color: #218838; }
+        .btn-warning { border-color: #ffc107; color: #ffc107; }
+        .btn-warning:hover { border-color: #e0a800; color: #e0a800; }
         .video-container {
             width: 100%;
-            background: #000;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
         }
         .video-container video { width: 100%; display: block; }
         .status-info {
-            background: #e3f2fd;
-            border: 1px solid #2196f3;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
+            border: 1px solid #007bff;
+            padding: 12px;
+            margin: 12px 0;
         }
         .transcript-panel {
             grid-column: 1 / -1;
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 25px;
-            margin-top: 20px;
+            padding: 15px;
+            margin-top: 15px;
+            border: 1px solid #ddd;
         }
         .transcript-content {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            min-height: 200px;
+            padding: 15px;
+            min-height: 150px;
             border: 1px solid #ddd;
             white-space: pre-wrap;
-            font-family: 'Courier New', monospace;
-            line-height: 1.6;
+            font-family: monospace;
+            line-height: 1.5;
         }
         .translation-panel {
             grid-column: 1 / -1;
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 25px;
-            margin-top: 20px;
+            padding: 15px;
+            margin-top: 15px;
+            border: 1px solid #ddd;
         }
         .translation-content {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            min-height: 200px;
+            padding: 15px;
+            min-height: 150px;
             border: 1px solid #ddd;
             white-space: pre-wrap;
-            font-family: 'Courier New', monospace;
-            line-height: 1.6;
+            font-family: monospace;
+            line-height: 1.5;
         }
         .language-selector {
             margin-bottom: 15px;
         }
         .language-selector select {
-            padding: 8px 12px;
-            border-radius: 6px;
+            padding: 6px 10px;
             border: 1px solid #ddd;
-            font-size: 14px;
-            margin-right: 10px;
+            font-size: 13px;
+            margin-right: 8px;
         }
         .translation-status {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 10px;
-            margin: 10px 0;
-            font-size: 14px;
+            border: 1px solid #ffc107;
+            padding: 8px;
+            margin: 8px 0;
+            font-size: 13px;
+            color: #856404;
         }
         @media (max-width: 768px) {
             .main-content { grid-template-columns: 1fr; }
@@ -135,26 +133,30 @@
     </style>
 </head>
 <body>
+    <!-- 返回文档链接 -->
+    <div style="position: fixed; top: 10px; left: 10px; z-index: 2000; background: rgba(255, 255, 255, 0.95); padding: 8px 12px; border-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+        <a href="https://www.siqiongbiluo.love/article/23" style="text-decoration: none; color: #667eea; font-size: 14px; font-weight: 500;">← 返回文档</a>
+    </div>
     <div class="container">
         <div class="header">
-            <h1>📹 录屏+音频转字幕系统</h1>
+            <h1>录屏+音频转字幕系统</h1>
             <p>基于原生JavaScript的屏幕录制与实时语音转文字解决方案</p>
         </div>
 
         <div class="main-content">
             <div class="control-panel">
-                <h2 class="section-title">🎮 控制面板</h2>
+                <h2 class="section-title">控制面板</h2>
                 <div class="status-info" id="statusInfo">
                     <strong>系统状态：</strong>就绪
                 </div>
-                <button class="btn" id="startBtn" onclick="startRecording()">🎬 开始录制</button>
-                <button class="btn btn-danger" id="stopBtn" onclick="stopRecording()" disabled>⏹️ 停止录制</button>
-                <button class="btn btn-success" id="downloadBtn" onclick="downloadVideo()" disabled>💾 下载视频</button>
-                <button class="btn" onclick="clearTranscript()">🗑️ 清空字幕</button>
+                <button class="btn" id="startBtn" onclick="startRecording()">开始录制</button>
+                <button class="btn btn-danger" id="stopBtn" onclick="stopRecording()" disabled>停止录制</button>
+                <button class="btn btn-success" id="downloadBtn" onclick="downloadVideo()" disabled>下载视频</button>
+                <button class="btn" onclick="clearTranscript()">清空字幕</button>
             </div>
 
             <div class="video-panel">
-                <h2 class="section-title">📺 视频预览</h2>
+                <h2 class="section-title">视频预览</h2>
                 <div class="video-container">
                     <video id="previewVideo" controls style="display: none;"></video>
                     <div id="videoPlaceholder" style="height: 200px; display: flex; align-items: center; justify-content: center; color: #666;">
@@ -169,16 +171,16 @@
         </div>
 
         <div class="transcript-panel">
-            <h2 class="section-title">📝 实时字幕</h2>
+            <h2 class="section-title">实时字幕</h2>
             <div class="transcript-content" id="transcriptContent">等待语音输入...</div>
             <div style="margin-top: 15px;">
-                <button class="btn" onclick="exportTranscript()">📄 导出字幕</button>
-                <button class="btn" onclick="copyTranscript()">📋 复制文本</button>
+                <button class="btn" onclick="exportTranscript()">导出字幕</button>
+                <button class="btn" onclick="copyTranscript()">复制文本</button>
             </div>
         </div>
 
         <div class="translation-panel">
-            <h2 class="section-title">🌐 翻译功能</h2>
+            <h2 class="section-title">翻译功能</h2>
             <div class="language-selector">
                 <select id="translateAPI" onchange="changeTranslateAPI()">
                     <option value="localTranslate">本地翻译 (无CORS问题)</option>
@@ -198,16 +200,16 @@
                     <option value="pt">葡萄牙语 (Português)</option>
                     <option value="it">意大利语 (Italiano)</option>
                 </select>
-                <button class="btn btn-warning" onclick="translateTranscript()">🔄 翻译字幕</button>
-                <button class="btn" onclick="clearTranslation()">🗑️ 清空翻译</button>
+                <button class="btn btn-warning" onclick="translateTranscript()">翻译字幕</button>
+                <button class="btn" onclick="clearTranslation()">清空翻译</button>
             </div>
             <div class="translation-status" id="translationStatus" style="display: none;">
                 <strong>翻译状态：</strong><span id="translationStatusText">准备翻译...</span>
             </div>
             <div class="translation-content" id="translationContent">等待翻译...</div>
             <div style="margin-top: 15px;">
-                <button class="btn" onclick="exportTranslation()">📄 导出翻译</button>
-                <button class="btn" onclick="copyTranslation()">📋 复制翻译</button>
+                <button class="btn" onclick="exportTranslation()">导出翻译</button>
+                <button class="btn" onclick="copyTranslation()">复制翻译</button>
             </div>
         </div>
     </div>
