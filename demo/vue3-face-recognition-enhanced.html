@@ -1165,18 +1165,69 @@
                 const updateFaceMatcher = () => {
                     if (faceLibrary.value.length === 0) {
                         faceMatcher.value = null
+                        console.log('📚 人脸库为空，清除人脸匹配器')
                         return
                     }
                     
-                    const labeledDescriptors = faceLibrary.value
-                        .filter(face => face.descriptor)
-                        .map(face => new faceapi.LabeledFaceDescriptors(
-                            face.name,
-                            [new Float32Array(face.descriptor)]
-                        ))
-                    
-                    if (labeledDescriptors.length > 0) {
+                    try {
+                        // 严格验证人脸描述符
+                        const facesWithValidDescriptors = faceLibrary.value.filter(face => {
+                            if (!face.descriptor) {
+                                console.log(`⚠️ 人脸 "${face.name}" 缺少描述符，跳过`)
+                                return false
+                            }
+                            
+                            // 检查描述符类型和维度
+                            const isValidType = Array.isArray(face.descriptor) || face.descriptor instanceof Float32Array
+                            if (!isValidType) {
+                                console.warn(`❌ 人脸 "${face.name}" 描述符类型无效:`, typeof face.descriptor)
+                                return false
+                            }
+                            
+                            if (face.descriptor.length !== 128) {
+                                console.warn(`❌ 人脸 "${face.name}" 描述符维度错误: ${face.descriptor.length}，期望128维`)
+                                return false
+                            }
+                            
+                            // 检查数值有效性
+                            const hasValidNumbers = Array.from(face.descriptor).every(val => 
+                                typeof val === 'number' && !isNaN(val) && isFinite(val)
+                            )
+                            
+                            if (!hasValidNumbers) {
+                                console.warn(`❌ 人脸 "${face.name}" 描述符包含无效数值`)
+                                return false
+                            }
+                            
+                            console.log(`✅ 人脸 "${face.name}" 描述符验证通过`)
+                            return true
+                        })
+                        
+                        if (facesWithValidDescriptors.length === 0) {
+                            faceMatcher.value = null
+                            console.log('⚠️ 没有有效的人脸描述符，无法创建人脸匹配器')
+                            return
+                        }
+                        
+                        const labeledDescriptors = facesWithValidDescriptors.map(face => {
+                            // 确保描述符是Float32Array格式
+                            const descriptor = face.descriptor instanceof Float32Array 
+                                ? face.descriptor 
+                                : new Float32Array(face.descriptor)
+                            
+                            return new faceapi.LabeledFaceDescriptors(
+                                face.name,
+                                [descriptor]
+                            )
+                        })
+                        
                         faceMatcher.value = new faceapi.FaceMatcher(labeledDescriptors, recognitionThreshold.value)
+                        console.log(`✅ 人脸匹配器已更新，包含 ${labeledDescriptors.length} 个可识别的人脸`)
+                        console.log(`📊 人脸库统计：总计 ${faceLibrary.value.length} 个，可识别 ${facesWithValidDescriptors.length} 个`)
+                    } catch (error) {
+                        console.error('❌ 更新人脸匹配器失败:', error)
+                        console.error('错误详情:', error.message)
+                        faceMatcher.value = null
                     }
                 }
                 
@@ -1257,54 +1308,101 @@
                         hasDescriptor: !!bestFace.descriptor
                     })
                     
-                                            // 如果当前检测结果没有描述符，尝试重新提取
-                        let descriptor = bestFace.descriptor
-                        if (!descriptor) {
-                            console.log('🔄 当前检测无描述符，尝试重新提取...')
-                            
-                            // 检查 Face Recognition 模型是否已加载
-                            if (!modelsLoaded.value) {
-                                console.error('❌ 模型未加载，无法提取描述符')
-                            } else {
-                                console.log('✅ 模型已加载，开始重新提取描述符')
-                                
-                                // 尝试多种参数组合
-                                const detectionOptions = [
-                                    new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 }),
-                                    new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 }),
-                                    new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.7 })
-                                ]
-                                
-                                for (let i = 0; i < detectionOptions.length && !descriptor; i++) {
-                                    try {
-                                        console.log(`🔍 尝试参数组合 ${i + 1}:`, {
-                                            inputSize: detectionOptions[i].inputSize,
-                                            scoreThreshold: detectionOptions[i].scoreThreshold
-                                        })
-                                        
-                                        const faceDetection = await faceapi
-                                            .detectSingleFace(tempCanvas, detectionOptions[i])
-                                            .withFaceLandmarks()
-                                            .withFaceDescriptor()
-                                        
-                                        if (faceDetection && faceDetection.descriptor) {
-                                            descriptor = Array.from(faceDetection.descriptor)
-                                            console.log(`✅ 参数组合 ${i + 1} 成功提取描述符，长度:`, descriptor.length)
-                                            break
-                                        } else {
-                                            console.warn(`⚠️ 参数组合 ${i + 1} 未检测到人脸或无法提取描述符`)
-                                        }
-                                    } catch (error) {
-                                        console.error(`❌ 参数组合 ${i + 1} 出错:`, error.message)
-                                    }
-                                }
-                                
-                                if (!descriptor) {
-                                    console.error('❌ 所有参数组合都无法提取描述符')
-                                    console.log('💡 建议：确保人脸清晰、光线充足、角度正面')
-                                }
-                            }
-                        }
+                                            // 严格的描述符提取和验证逻辑
+                         let descriptor = bestFace.descriptor
+                         
+                         // 验证现有描述符的有效性
+                         if (descriptor) {
+                             if (!Array.isArray(descriptor) && !(descriptor instanceof Float32Array)) {
+                                 console.warn('现有描述符格式无效，重新提取')
+                                 descriptor = null
+                             } else if (descriptor.length !== 128) {
+                                 console.warn(`现有描述符维度错误：${descriptor.length}，期望128维，重新提取`)
+                                 descriptor = null
+                             } else {
+                                 // 检查数值有效性
+                                 const hasValidNumbers = Array.from(descriptor).every(val => 
+                                     typeof val === 'number' && !isNaN(val) && isFinite(val)
+                                 )
+                                 if (!hasValidNumbers) {
+                                     console.warn('现有描述符包含无效数值，重新提取')
+                                     descriptor = null
+                                 } else {
+                                     console.log('✅ 现有描述符验证通过，128维有效描述符')
+                                 }
+                             }
+                         }
+                         
+                         // 如果没有有效描述符，尝试重新提取
+                         if (!descriptor) {
+                             console.log('🔄 开始重新提取描述符...')
+                             
+                             // 检查 Face Recognition 模型是否已加载
+                             if (!modelsLoaded.value) {
+                                 console.error('❌ 模型未加载，无法提取描述符')
+                                 ElMessage.error('人脸识别模型未加载完成，请等待模型加载后再试')
+                             } else {
+                                 console.log('✅ 模型已加载，开始重新提取描述符')
+                                 
+                                 // 优化的参数组合，按成功率排序
+                                 const detectionOptions = [
+                                     new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.4 }),
+                                     new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.3 }),
+                                     new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }),
+                                     new faceapi.TinyFaceDetectorOptions({ inputSize: 608, scoreThreshold: 0.2 })
+                                 ]
+                                 
+                                 for (let i = 0; i < detectionOptions.length && !descriptor; i++) {
+                                     try {
+                                         console.log(`🔍 尝试参数组合 ${i + 1}/${detectionOptions.length}:`, {
+                                             inputSize: detectionOptions[i].inputSize,
+                                             scoreThreshold: detectionOptions[i].scoreThreshold
+                                         })
+                                         
+                                         const faceDetection = await faceapi
+                                             .detectSingleFace(tempCanvas, detectionOptions[i])
+                                             .withFaceLandmarks()
+                                             .withFaceDescriptor()
+                                         
+                                         if (faceDetection && faceDetection.descriptor) {
+                                             const extractedDescriptor = Array.from(faceDetection.descriptor)
+                                             
+                                             // 严格验证提取的描述符
+                                             if (extractedDescriptor.length === 128) {
+                                                 const hasValidNumbers = extractedDescriptor.every(val => 
+                                                     typeof val === 'number' && !isNaN(val) && isFinite(val)
+                                                 )
+                                                 
+                                                 if (hasValidNumbers) {
+                                                     descriptor = extractedDescriptor
+                                                     console.log(`✅ 参数组合 ${i + 1} 成功提取有效的128维描述符`)
+                                                     console.log(`📊 描述符统计: 最小值=${Math.min(...descriptor).toFixed(4)}, 最大值=${Math.max(...descriptor).toFixed(4)}`)
+                                                     break
+                                                 } else {
+                                                     console.warn(`⚠️ 参数组合 ${i + 1} 提取的描述符包含无效数值`)
+                                                 }
+                                             } else {
+                                                 console.warn(`⚠️ 参数组合 ${i + 1} 提取的描述符维度错误：${extractedDescriptor.length}`)
+                                             }
+                                         } else {
+                                             console.warn(`⚠️ 参数组合 ${i + 1} 未检测到人脸或无法提取描述符`)
+                                         }
+                                     } catch (error) {
+                                         console.error(`❌ 参数组合 ${i + 1} 出错:`, error.message)
+                                     }
+                                 }
+                                 
+                                 if (!descriptor) {
+                                     console.error('❌ 所有参数组合都无法提取有效的128维描述符')
+                                     console.log('💡 建议：')
+                                     console.log('  1. 确保人脸清晰、光线充足')
+                                     console.log('  2. 保持人脸正面朝向摄像头')
+                                     console.log('  3. 避免遮挡（眼镜、帽子、口罩等）')
+                                     console.log('  4. 确保摄像头分辨率足够')
+                                     ElMessage.warning('无法提取人脸特征，该人脸将仅作为图片存储，无法用于识别')
+                                 }
+                             }
+                         }
                     
                     currentCapturedFace.value = {
                         detection: bestFace.detection,
