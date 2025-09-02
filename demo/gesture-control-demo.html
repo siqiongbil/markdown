@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手势控制网页演示 - 未来交互体验</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1640029074/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.6.1629159505/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #666;
+            --secondary-color: #888;
+            --accent-color: #999;
+            --text-color: #333;
+            --bg-color: #ffffff;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .gesture-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 20px;
+
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 150px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .canvas-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .gesture-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #666;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .current-gesture {
+            font-size: 1.5rem;
+        }
+
+        .gesture-name {
+            font-weight: bold;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+
+        }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        .gesture-commands {
+            font-size: 0.8rem;
+            line-height: 1.4;
+            opacity: 0.8;
+        }
+
+        .main-content {
+            padding: 100px 50px 50px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero-section {
+            text-align: center;
+            margin-bottom: 80px;
+            padding: 60px 0;
+            background: var(--card-bg);
+            border-radius: 20px;
+
+        }
+
+        .hero-title {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .hero-subtitle {
+            font-size: 1.3rem;
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .feature-card:hover {
+
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .feature-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+
+        .feature-description {
+            opacity: 0.8;
+            line-height: 1.6;
+        }
+
+        .notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--card-bg);
+            color: var(--text-color);
+            padding: 20px 40px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            max-width: 80%;
+            text-align: center;
+        }
+
+        .notification.show {
+            opacity: 1;
+        }
+
+        .notification.error {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .notification.success {
+            background: #51cf66;
+            color: white;
+        }
+
+        .notification.warning {
+            background: #ffd43b;
+            color: #333;
+        }
+
+        .debug-info {
+            background: var(--card-bg);
+            border: 1px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 768px) {
+            .gesture-panel {
+                width: 250px;
+                top: 10px;
+                right: 10px;
+            }
+            
+            .main-content {
+                padding: 120px 20px 50px;
+            }
+            
+            .hero-title {
+                font-size: 2rem;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="gesture-panel" id="gesturePanel">
+        <div class="panel-header">
+            <div class="panel-title">手势控制</div>
+        </div>
+        <div class="panel-content">
+            <div class="video-container">
+                <video id="inputVideo" autoplay muted playsinline></video>
+                <canvas id="outputCanvas" class="canvas-overlay"></canvas>
+            </div>
+            
+            <div class="gesture-status">
+                <div class="current-gesture" id="currentGesture">手势</div>
+                <div>
+                    <div class="gesture-name" id="gestureName">等待中...</div>
+                    <div style="font-size: 0.8rem; opacity: 0.8;" id="confidence">0%</div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button id="startBtn" class="btn btn-primary">启动</button>
+                <button id="stopBtn" class="btn btn-secondary" disabled>停止</button>
+            </div>
+            
+            <div class="gesture-commands">
+                <strong>手势命令：</strong><br>
+                点赞 - 向上滚动<br>
+                点踩 - 向下滚动<br>
+                数字1 - 返回顶部
+            </div>
+            
+            <div class="debug-info" id="debugInfo" style="display: none;">
+                <strong>调试信息：</strong><br>
+                <div id="debugMessages"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <div class="main-content">
+        <section class="hero-section">
+            <h1 class="hero-title">手势控制演示</h1>
+            <p>启动摄像头，用手势来控制这个页面吧！</p>
+        </section>
+
+        <div class="feature-grid">
+            <div class="feature-card" data-feature="scroll">
+                <div class="feature-icon">滚动</div>
+                <h3 class="feature-title">智能滚动</h3>
+                <p class="feature-description">使用点赞和点踩手势来控制页面滚动，告别传统的鼠标滚轮操作。</p>
+            </div>
+            
+            <div class="feature-card" data-feature="navigation">
+                <div class="feature-icon">导航</div>
+                <h3 class="feature-title">快速导航</h3>
+                <p class="feature-description">数字1手势快速返回页面顶部，提升浏览效率。</p>
+            </div>
+        </div>
+
+        <div style="height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--card-bg); border-radius: 20px;">
+            <div style="text-align: center;">
+                <h2 style="font-size: 3rem; margin-bottom: 20px;">完成</h2>
+
+                <p style="margin-top: 20px; opacity: 0.6;">使用数字1手势返回顶部继续体验</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class GestureController {
+            constructor() {
+                this.hands = null;
+                this.camera = null;
+                this.isRunning = false;
+                this.lastGestureTime = 0;
+                this.gestureDelay = 1000; // 1秒防抖
+                this.debugMode = false;
+                
+                this.initializeElements();
+                this.checkLibraries();
+                this.bindEvents();
+            }
+
+            initializeElements() {
+                this.videoElement = document.getElementById('inputVideo');
+                this.canvasElement = document.getElementById('outputCanvas');
+                this.canvasCtx = this.canvasElement.getContext('2d');
+                
+                this.gesturePanel = document.getElementById('gesturePanel');
+                this.startBtn = document.getElementById('startBtn');
+                this.stopBtn = document.getElementById('stopBtn');
+                
+                this.currentGesture = document.getElementById('currentGesture');
+                this.gestureName = document.getElementById('gestureName');
+                this.confidence = document.getElementById('confidence');
+                
+                this.notification = document.getElementById('notification');
+                this.debugInfo = document.getElementById('debugInfo');
+                this.debugMessages = document.getElementById('debugMessages');
+            }
+
+            checkLibraries() {
+                const requiredLibs = ['Camera', 'Hands', 'drawConnectors', 'drawLandmarks'];
+                const missingLibs = [];
+                
+                requiredLibs.forEach(lib => {
+                    if (typeof window[lib] === 'undefined') {
+                        missingLibs.push(lib);
+                    }
+                });
+                
+                if (missingLibs.length > 0) {
+                    this.addDebugMessage(`缺少库: ${missingLibs.join(', ')}`);
+                    this.showNotification(`MediaPipe库加载失败，请刷新页面重试`, 'error');
+                    this.startBtn.disabled = true;
+                    this.startBtn.textContent = '库加载失败';
+                } else {
+                    this.addDebugMessage('所有库加载成功');
+                    this.initializeMediaPipe();
+                }
+            }
+
+            addDebugMessage(message) {
+                if (!this.debugMode) {
+                    this.debugMode = true;
+                    this.debugInfo.style.display = 'block';
+                }
+                const timestamp = new Date().toLocaleTimeString();
+                this.debugMessages.innerHTML += `[${timestamp}] ${message}<br>`;
+                this.debugMessages.scrollTop = this.debugMessages.scrollHeight;
+            }
+
+            bindEvents() {
+                this.startBtn.addEventListener('click', () => this.startCamera());
+                this.stopBtn.addEventListener('click', () => this.stopCamera());
+                
+                // 双击面板标题显示调试信息
+                document.querySelector('.panel-title').addEventListener('dblclick', () => {
+                    this.debugInfo.style.display = this.debugInfo.style.display === 'none' ? 'block' : 'none';
+                });
+            }
+
+            async initializeMediaPipe() {
+                try {
+                    this.addDebugMessage('初始化MediaPipe...');
+                    
+                    this.hands = new Hands({
+                        locateFile: (file) => {
+                            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}`;
+                        }
+                    });
+
+                    this.hands.setOptions({
+                        maxNumHands: 1,
+                        modelComplexity: 1,
+                        minDetectionConfidence: 0.7,
+                        minTrackingConfidence: 0.5
+                    });
+
+                    this.hands.onResults((results) => this.onResults(results));
+                    this.addDebugMessage('MediaPipe初始化成功');
+                } catch (error) {
+                    this.addDebugMessage(`MediaPipe初始化失败: ${error.message}`);
+                    this.showNotification('MediaPipe初始化失败: ' + error.message, 'error');
+                }
+            }
+
+            async startCamera() {
+                try {
+                    this.addDebugMessage('请求摄像头权限...');
+                    
+                    // 检查浏览器支持
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        throw new Error('浏览器不支持摄像头访问');
+                    }
+                    
+                    // 检查HTTPS
+                    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                        this.showNotification('摄像头需要HTTPS或本地环境', 'warning');
+                    }
+
+                    this.camera = new Camera(this.videoElement, {
+                        onFrame: async () => {
+                            if (this.hands && this.isRunning) {
+                                await this.hands.send({ image: this.videoElement });
+                            }
+                        },
+                        width: 300,
+                        height: 200
+                    });
+
+                    await this.camera.start();
+                    this.isRunning = true;
+                    this.startBtn.disabled = true;
+                    this.stopBtn.disabled = false;
+                    this.gestureName.textContent = '检测中...';
+                    this.addDebugMessage('摄像头启动成功');
+                    this.showNotification('摄像头已启动，开始手势控制！', 'success');
+                } catch (error) {
+                    this.addDebugMessage(`摄像头启动失败: ${error.message}`);
+                    let errorMsg = '摄像头启动失败: ';
+                    
+                    if (error.name === 'NotAllowedError') {
+                        errorMsg += '请允许摄像头权限';
+                    } else if (error.name === 'NotFoundError') {
+                        errorMsg += '未找到摄像头设备';
+                    } else if (error.name === 'NotReadableError') {
+                        errorMsg += '摄像头被其他应用占用';
+                    } else {
+                        errorMsg += error.message;
+                    }
+                    
+                    this.showNotification(errorMsg, 'error');
+                }
+            }
+
+            stopCamera() {
+                if (this.camera) {
+                    this.camera.stop();
+                }
+                this.isRunning = false;
+                this.startBtn.disabled = false;
+                this.stopBtn.disabled = true;
+                this.gestureName.textContent = '已停止';
+                this.clearCanvas();
+                this.addDebugMessage('摄像头已停止');
+                this.showNotification('手势控制已停止', 'info');
+            }
+
+
+
+            onResults(results) {
+                this.canvasCtx.save();
+                this.canvasCtx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
+                
+                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                    const landmarks = results.multiHandLandmarks[0];
+                    this.drawLandmarks(landmarks);
+                    
+                    const gesture = this.recognizeGesture(landmarks);
+                    if (gesture) {
+                        this.updateGestureDisplay(gesture);
+                        this.executeGestureCommand(gesture);
+                    }
+                } else {
+                    this.updateGestureDisplay({ name: '无手势', emoji: '手势', confidence: 0 });
+                }
+
+                this.canvasCtx.restore();
+            }
+
+            drawLandmarks(landmarks) {
+                this.canvasCtx.fillStyle = '#FF0000';
+                for (const landmark of landmarks) {
+                    const x = landmark.x * this.canvasElement.width;
+                    const y = landmark.y * this.canvasElement.height;
+                    this.canvasCtx.beginPath();
+                    this.canvasCtx.arc(x, y, 3, 0, 2 * Math.PI);
+                    this.canvasCtx.fill();
+                }
+            }
+
+            recognizeGesture(landmarks) {
+                const isFingerUp = (fingerTip, fingerPip, fingerMcp) => {
+                    return landmarks[fingerTip].y < landmarks[fingerPip].y && 
+                           landmarks[fingerPip].y < landmarks[fingerMcp].y;
+                };
+
+                const isThumbUp = landmarks[4].x > landmarks[3].x && landmarks[4].x > landmarks[2].x;
+                const isThumbDown = landmarks[4].x < landmarks[3].x && landmarks[4].x < landmarks[2].x;
+                
+                const fingersUp = [
+                    isThumbUp,
+                    isFingerUp(8, 6, 5),
+                    isFingerUp(12, 10, 9),
+                    isFingerUp(16, 14, 13),
+                    isFingerUp(20, 18, 17)
+                ];
+
+                const upCount = fingersUp.filter(Boolean).length;
+
+                // 手势识别逻辑 - 仅保留滚动和导航功能
+                if (upCount === 1 && fingersUp[1]) {
+                    return { name: '数字1', emoji: '1', confidence: 90, command: 'scrollToTop' };
+                } else if (fingersUp[0] && !fingersUp[1] && !fingersUp[2] && !fingersUp[3] && !fingersUp[4]) {
+                    return { name: '点赞', emoji: '赞', confidence: 87, command: 'scrollUp' };
+                } else if (isThumbDown && !fingersUp[1] && !fingersUp[2] && !fingersUp[3] && !fingersUp[4]) {
+                    return { name: '点踩', emoji: '踩', confidence: 85, command: 'scrollDown' };
+                } else {
+                    return { name: '未知手势', emoji: '?', confidence: 60, command: null };
+                }
+            }
+
+            executeGestureCommand(gesture) {
+                const now = Date.now();
+                if (now - this.lastGestureTime < this.gestureDelay) {
+                    return;
+                }
+
+                if (!gesture.command) return;
+
+                this.lastGestureTime = now;
+                this.addDebugMessage(`执行手势命令: ${gesture.name}`);
+
+                switch (gesture.command) {
+                    case 'scrollUp':
+                        window.scrollBy({ top: -300, behavior: 'smooth' });
+                        this.showNotification('向上滚动', 'info');
+                        break;
+                    case 'scrollDown':
+                        window.scrollBy({ top: 300, behavior: 'smooth' });
+                        this.showNotification('向下滚动', 'info');
+                        break;
+                    case 'scrollToTop':
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        this.showNotification('返回顶部', 'info');
+                        break;
+                }
+            }
+
+            updateGestureDisplay(gesture) {
+                this.currentGesture.textContent = gesture.emoji;
+                this.gestureName.textContent = gesture.name;
+                this.confidence.textContent = `${gesture.confidence}%`;
+            }
+
+            showNotification(message, type = 'info') {
+                this.notification.textContent = message;
+                this.notification.className = `notification show ${type}`;
+                
+                setTimeout(() => {
+                    this.notification.classList.remove('show');
+                }, 3000);
+            }
+
+            clearCanvas() {
+                this.canvasCtx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
+            }
+        }
+
+        // 等待页面和库加载完成
+        window.addEventListener('load', () => {
+            // 延迟初始化，确保所有库都加载完成
+            setTimeout(() => {
+                new GestureController();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
